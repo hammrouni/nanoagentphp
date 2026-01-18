@@ -29,66 +29,71 @@ The AI landscape is filled with "everything-included" frameworks that are often 
 * **🎯 Goal-Oriented Execution**: Define clear, context-aware tasks. The agent handles the reasoning, you handle the results.
 * **💎 Minimalist Design**: A tiny footprint with massive potential. Use only what you need, with no hidden magic.
 
-## Installation
+# NanoAgent Setup Guide
 
-Install via Composer:
+This guide provides step-by-step instructions for installing, configuring, and running the NanoAgent PHP library in any PHP environment.
 
-```bash
-composer require hammrouni/nanoagent
+## 1. Prerequisites
 
-```
+-   **PHP 8.0** or higher
+-   **Composer** installed globally
 
-## Quick Start
+## 2. Installation
 
-Get an agent running in less than 30 seconds.
+1.  **Create a project directory** (if you haven't already):
+    ```bash
+    mkdir my-agent-project
+    cd my-agent-project
+    ```
 
-```php
-use NanoAgent\Agent;
-use NanoAgent\Task;
+2.  **Install the library via Composer**:
+    ```bash
+    composer require hammrouni/nanoagent
+    ```
 
-// 1. Initialize the Agent
-$agent = new Agent(
-    llm: [
-        'provider' => 'groq',
-        'model'    => 'llama-3.3-70b-versatile',
-        'api_key'  => getenv('GROQ_API_KEY')
-    ],
-    systemPrompt: "You are a helpful AI assistant."
-);
+## 3. Configuration
 
-// 2. Execute a Task
-$task = new Task($agent);
-$response = $task->execute("Explain the benefits of minimalism in software engineering.");
+You can create a `config.php` file (copy the example from `NanoAgent/config.php`) in the project root to manage credentials.
 
-echo $response;
+1.  **Create the Configuration File**:
+    Create a file named `config.php` in your project root.
 
-```
+2.  **Add your API Key**:
+    Copy the following content and replace `your_api_key_here` with your actual API key (e.g., for Groq, OpenAI, etc.).
 
-## Configuration
+    ```php
+    <?php
+    
+    return [
+        // API Key
+        'api_key' => 'your_api_key_here',
+        
+        // AI Provider (groq, openai, anthropic, etc.)
+        'provider' => '',
+        
+        // Model to use
+        'model' => '',
+    ];
+    ```
 
-You can configure the agent directly (as above) or use a config file.
+3.  **Initialize the Agent with Config**:
+    Pass the loaded configuration to the Agent constructor.
 
-### Using config.php
+    ```php
+    // index.php
+    $config = require __DIR__ . '/config.php';
+    
+    $agent = new Agent(
+        llm: $config
+        // ... other parameters
+    );
+    ```
 
-Create a `config.php` file in your project root:
+## 4. Troubleshooting
 
-```php
-<?php
-return [
-    'provider' => 'groq',
-    'api_key' => 'your-api-key-here',
-    'model' => 'llama-3.3-70b-versatile',
-];
-
-```
-
-Load it into your application:
-
-```php
-$config = require 'config.php';
-$agent = new Agent(llm: $config);
-
-```
+-   **Class not found**: Run `composer dump-autoload` to regenerate the autoload files.
+-   **API Error**: Check `config.php` or your environment variables to ensure the API key is correct.
+-   **PHP Version**: Ensure you are running PHP 8.0+ by checking `php -v`.
 
 ## Advanced Usage: Tools
 
@@ -139,10 +144,10 @@ Check the `examples/` directory for advanced use cases:
 ## Supported Providers
 
 * Groq
-* OpenAI
-* OpenRouter
-* Anthropic
-* DeepSeek
+* OpenAI (not tested)
+* OpenRouter (not tested)
+* Anthropic (not tested)
+* DeepSeek (not tested)
 
 ## License
 
