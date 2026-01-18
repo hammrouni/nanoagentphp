@@ -1,9 +1,12 @@
 # NanoAgent PHP
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/yourusername/nanoagent.svg?style=flat-square)](https://packagist.org/packages/yourusername/nanoagent)
-[![Total Downloads](https://img.shields.io/packagist/dt/yourusername/nanoagent.svg?style=flat-square)](https://packagist.org/packages/yourusername/nanoagent)
-[![License](https://img.shields.io/packagist/l/yourusername/nanoagent.svg?style=flat-square)](https://packagist.org/packages/yourusername/nanoagent)
-[![PHP Version](https://img.shields.io/packagist/php-v/yourusername/nanoagent.svg?style=flat-square)](https://packagist.org/packages/yourusername/nanoagent)
+
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/hammrouni/nanoagent?style=flat-square&logo=composer)](https://packagist.org/packages/hammrouni/nanoagent)
+[![Total Downloads](https://img.shields.io/packagist/dt/hammrouni/nanoagent?style=flat-square&logo=packagist)](https://packagist.org/packages/hammrouni/nanoagent)
+[![License](https://img.shields.io/github/license/hammrouni/nanoagentphp?style=flat-square&color=yellow)](https://github.com/hammrouni/nanoagentphp/blob/main/LICENSE)
+[![PHP Version](https://img.shields.io/packagist/php-v/hammrouni/nanoagent?style=flat-square&logo=php)](https://packagist.org/packages/hammrouni/nanoagent)
+[![GitHub Stars](https://img.shields.io/github/stars/hammrouni/nanoagentphp?style=flat-square&logo=github)](https://github.com/hammrouni/nanoagentphp)
+[![GitHub Issues](https://img.shields.io/github/issues/hammrouni/nanoagentphp?style=flat-square&logo=github)](https://github.com/hammrouni/nanoagentphp/issues)
 
 **Bring the power of LLMs to your PHP application—without the bloat.**
 
@@ -31,7 +34,7 @@ The AI landscape is filled with "everything-included" frameworks that are often 
 Install via Composer:
 
 ```bash
-composer require yourusername/nanoagent
+composer require hammrouni/nanoagent
 
 ```
 
