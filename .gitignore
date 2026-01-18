@@ -1,6 +1,13 @@
 vendor/
 .env
+
+# System
+Thumbs.db
 .DS_Store
+
+# Composer
+composer.phar
+composer.lock
 config.php
 
 # IDEs
@@ -14,3 +21,11 @@ config.php
 
 # Application Generated
 examples/chat_history.json
+
+# PHPUnit
+.phpunit.cache/
+.phpunit.result.cache
+test-results/
+coverage/
+clover.xml
+coverage.xml

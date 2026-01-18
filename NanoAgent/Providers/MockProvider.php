@@ -22,6 +22,9 @@ class MockProvider implements Provider
         private array $responses = []
     ) {}
 
+    /** @var array List of captured requests for inspection. */
+    private array $capturedRequests = [];
+
     /**
      * Return the next mock response from the queue.
      *
@@ -31,6 +34,12 @@ class MockProvider implements Provider
      */
     public function send(array $messages, array $tools = []): array
     {
+        $this->capturedRequests[] = [
+            'type' => 'send',
+            'messages' => $messages,
+            'tools' => $tools
+        ];
+
         // Retrieve and remove the next response from the front of the queue.
         $response = array_shift($this->responses) ?? ['content' => 'Mock response'];
         
@@ -41,17 +50,21 @@ class MockProvider implements Provider
         ], $response);
     }
 
-    /**
-     * Simulate a streaming response using mocked data.
-     *
-     * @param array $messages Thread of conversation messages.
-     * @param callable $onToken Callback for each "token".
-     * @param array $tools List of registered tools.
-     * @return array The final standardized response.
-     */
     public function stream(array $messages, callable $onToken, array $tools = []): array
     {
-        $response = $this->send($messages, $tools);
+        $this->capturedRequests[] = [
+            'type' => 'stream',
+            'messages' => $messages,
+            'tools' => $tools
+        ];
+
+        // Retrieve and remove the next response from the front of the queue.
+        $response = array_shift($this->responses) ?? ['content' => 'Mock response'];
+        
+        $response = array_merge([
+            'content' => '',
+            'tool_calls' => []
+        ], $response);
         
         // Simulate streaming by invoking the callback with the full content at once.
         if (!empty($response['content'])) {
@@ -59,5 +72,15 @@ class MockProvider implements Provider
         }
         
         return $response;
+    }
+
+    /**
+     * Retrieve captured requests for assertion.
+     * 
+     * @return array
+     */
+    public function getCapturedRequests(): array
+    {
+        return $this->capturedRequests;
     }
 }
