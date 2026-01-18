@@ -1,6 +1,6 @@
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="NanoAgent/autoloader.php"
+         bootstrap="tests/bootstrap.php"
          colors="true"
          cacheResultFile=".phpunit.cache/test-results"
          verbose="true">
