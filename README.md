@@ -29,41 +29,28 @@ The AI landscape is filled with "everything-included" frameworks that are often 
 * **🎯 Goal-Oriented Execution**: Define clear, context-aware tasks. The agent handles the reasoning, you handle the results.
 * **💎 Minimalist Design**: A tiny footprint with massive potential. Use only what you need, with no hidden magic.
 
-# NanoAgent Setup Guide
+## 🚀 Quick Start
 
 This guide provides step-by-step instructions for installing, configuring, and running the NanoAgent PHP library in any PHP environment.
 
-## 1. Prerequisites
+### Prerequisites
 
 -   **PHP 8.0** or higher
 -   **Composer** installed globally
 
-## 2. Installation
+### 📦 Installation & Setup
 
-1.  **Create a project directory** (if you haven't already):
+1.  Initialize a project:
     ```bash
-    mkdir my-agent-project
-    cd my-agent-project
-    ```
-
-2.  **Install the library via Composer**:
-    ```bash
+    mkdir my-agent-project && cd my-agent-project
     composer require hammrouni/nanoagent
     ```
 
-## 3. Configuration
-
-You can create a `config.php` file (copy the example from `NanoAgent/config.php`) in the project root to manage credentials.
-
-1.  **Create the Configuration File**:
-    Create a file named `config.php` in your project root.
-
-2.  **Add your API Key**:
-    Copy the following content and replace `your_api_key_here` with your actual API key (e.g., for Groq, OpenAI, etc.).
+2.  **Configuration** :
+    Create `config.php` (copy the example from `NanoAgent/config.php.example`) in the project root to manage credentials.
 
     ```php
-    <?php
-    
+    // config.php
     return [
         // API Key
         'api_key' => 'your_api_key_here',
@@ -76,9 +63,7 @@ You can create a `config.php` file (copy the example from `NanoAgent/config.php`
     ];
     ```
 
-3.  **Initialize the Agent with Config**:
-    Pass the loaded configuration to the Agent constructor.
-
+    Then usage becomes:
     ```php
     // index.php
     $config = require __DIR__ . '/config.php';
@@ -89,13 +74,13 @@ You can create a `config.php` file (copy the example from `NanoAgent/config.php`
     );
     ```
 
-## 4. Troubleshooting
+3. **Troubleshooting**
 
 -   **Class not found**: Run `composer dump-autoload` to regenerate the autoload files.
 -   **API Error**: Check `config.php` or your environment variables to ensure the API key is correct.
 -   **PHP Version**: Ensure you are running PHP 8.0+ by checking `php -v`.
 
-## Advanced Usage: Tools
+## 🛠️ Advanced Usage: Tools
 
 Give your agent "hands" by defining tools.
 
@@ -123,7 +108,7 @@ $agent = new Agent(
 
 ```
 
-## Examples
+## 📂 Examples
 
 Check the `examples/` directory for advanced use cases:
 
