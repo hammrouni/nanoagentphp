@@ -1,0 +1,16 @@
+vendor/
+.env
+.DS_Store
+config.php
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs and Cache
+*.log
+
+# Application Generated
+examples/chat_history.json

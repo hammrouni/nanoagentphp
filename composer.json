@@ -1,0 +1,26 @@
+{
+    "name": "yourusername/nanoagent",
+    "description": "A lightweight, no-nonsense PHP library for building AI agents.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "NanoAgent\\": "NanoAgent/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Your Name",
+            "email": "email@example.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
+    "minimum-stability": "stable"
+}

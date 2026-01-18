@@ -1,0 +1,7 @@
+<?php
+
+return [
+    'provider' => 'groq', // Default provider
+    'api_key' => 'your-api-key-here', // Default api key
+    'model' => 'llama-3.3-70b-versatile', // Default model
+];
