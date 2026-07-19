@@ -17,7 +17,7 @@ class Agent
     /**
      * Library Version
      */
-    public const VERSION = '0.3.0';
+    public const VERSION = '0.4.0';
 
     /** @var array<array{role: string, content: string, tool_calls?: array}> Internal storage for the conversation's message history. */
     private array $history = [];
@@ -267,6 +267,30 @@ class Agent
     public function registerTool(\NanoAgent\Contracts\Tool $tool): void
     {
         $this->tools[$tool->getName()] = $tool;
+    }
+
+    /**
+     * Discover every tool exposed by an MCP (Model Context Protocol) server
+     * and register each one as a Tool, so the agent can call them exactly
+     * like local FunctionTool instances.
+     *
+     * @param \NanoAgent\Mcp\McpClient $client
+     * @return string[] Names of the tools that were registered.
+     */
+    public function registerMcpServer(\NanoAgent\Mcp\McpClient $client): array
+    {
+        $names = [];
+        foreach ($client->listTools() as $tool) {
+            $mcpTool = new \NanoAgent\Tools\McpTool(
+                $client,
+                $tool['name'],
+                $tool['description'] ?? '',
+                $tool['inputSchema'] ?? []
+            );
+            $this->registerTool($mcpTool);
+            $names[] = $mcpTool->getName();
+        }
+        return $names;
     }
 
     /**

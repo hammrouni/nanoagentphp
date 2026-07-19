@@ -69,6 +69,11 @@
                 <h2>🌍 API Integration</h2>
                 <p>Agent fetching real data from external public APIs.</p>
             </a>
+
+            <a href="mcp_tools.php" class="card" style="border-left: 4px solid #14b8a6;">
+                <h2>🔌 MCP Tools</h2>
+                <p>Agent calling tools discovered from a remote MCP server.</p>
+            </a>
         </div>
     </div>
 </body>

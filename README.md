@@ -26,6 +26,7 @@ The AI landscape is filled with "everything-included" frameworks that are often 
 
 * **⚡ Adaptable**: Seamlessly switch between OpenAI, Groq, Anthropic, DeepSeek, and OpenRouter with a single line of config.
 * **🛠️ Tool-First Architecture**: Give your AI "hands." Easily map PHP functions as tools that your agent can intelligently execute to interact with your database, APIs, or filesystem.
+* **🔌 MCP Support**: Connect to any Model Context Protocol server (Streamable HTTP) and let the agent call its tools alongside your own.
 * **🎯 Goal-Oriented Execution**: Define clear, context-aware tasks. The agent handles the reasoning, you handle the results.
 * **💎 Minimalist Design**: A tiny footprint with massive potential. Use only what you need, with no hidden magic.
 
@@ -108,6 +109,21 @@ $agent = new Agent(
 
 ```
 
+### Connecting to an MCP Server
+
+Register every tool an [MCP](https://modelcontextprotocol.io) server exposes in one call — they behave exactly like local tools from there on.
+
+```php
+use NanoAgent\Mcp\McpClient;
+
+$agent = new Agent(llm: [...]);
+
+$mcpClient = new McpClient('https://mcp.deepwiki.com/mcp');
+$agent->registerMcpServer($mcpClient);
+
+echo $agent->chat('Ask the facebook/react repo what it does.');
+```
+
 ## 📂 Examples
 
 Check the `examples/` directory for advanced use cases:
@@ -125,6 +141,7 @@ Check the `examples/` directory for advanced use cases:
 | **[Advanced Tools](examples/advanced_tools.php)** | Complex multi-step tool usage with simulated database state. |
 | **[API Integration](examples/api_integration.php)** | Fetch real-world data from external APIs. |
 | **[Multi-Provider](examples/multi_provider.php)** | Switch between different AI providers programmatically. |
+| **[MCP Tools](examples/mcp_tools.php)** | Call tools discovered from a remote MCP server. |
 
 ## Supported Providers
 
@@ -136,7 +153,11 @@ Check the `examples/` directory for advanced use cases:
 
 ## Changelog
 
-### 0.3.0 (unreleased)
+### 0.4.0 (unreleased)
+
+1. Added MCP (Model Context Protocol) client support: connect to any Streamable HTTP MCP server and register its tools on an `Agent` with `registerMcpServer()`.
+
+### 0.3.0
 
 1. Inject a custom provider directly into `Agent`, no config array needed.
 2. Configure `temperature`, `max_tokens`, and a custom `base_url` per provider.
