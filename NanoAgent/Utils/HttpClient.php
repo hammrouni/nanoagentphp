@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace NanoAgent\Utils;
 
 use NanoAgent\Exceptions\ProviderException;
+use JsonException;
 use RuntimeException;
 
 /**
@@ -27,6 +28,30 @@ class HttpClient
     ) {}
 
     /**
+     * Encode a request body as JSON.
+     *
+     * Uses JSON_UNESCAPED_UNICODE/JSON_UNESCAPED_SLASHES so non-ASCII text (e.g.
+     * tool results, user messages) isn't inflated into \uXXXX escapes before being
+     * sent to the API — that bloats the request and wastes tokens on the model's
+     * side for no benefit. JSON_THROW_ON_ERROR turns an unencodable body (e.g.
+     * invalid UTF-8 somewhere in the conversation) into a clear error instead of
+     * silently POSTing an empty body, which is what json_encode() returning false
+     * would otherwise do (curl coerces it to an empty string).
+     *
+     * @param array $body
+     * @return string
+     * @throws ProviderException If the body cannot be encoded as JSON.
+     */
+    private function encodeJsonBody(array $body): string
+    {
+        try {
+            return json_encode($body, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        } catch (JsonException $e) {
+            throw new ProviderException('Failed to encode request body as JSON: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Perform a standard POST request with a JSON payload.
      *
      * @param string $url The target endpoint URL.
@@ -41,7 +66,7 @@ class HttpClient
     {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $this->encodeJsonBody($body));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->connectTimeout);
@@ -62,7 +87,7 @@ class HttpClient
         $isValidJson = json_last_error() === JSON_ERROR_NONE;
 
         if ($statusCode >= 400) {
-            $detail = $isValidJson ? json_encode($data) : (string) $response;
+            $detail = $isValidJson ? json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : (string) $response;
             throw new ProviderException("HTTP $statusCode error from API: $detail", $statusCode);
         }
 
@@ -91,7 +116,7 @@ class HttpClient
     {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $this->encodeJsonBody($body));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->connectTimeout);
         curl_setopt($ch, CURLOPT_TIMEOUT, $this->streamTimeout);

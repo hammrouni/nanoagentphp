@@ -42,10 +42,14 @@ class ActivityLogger
             $data = $log['data'];
 
             if ($evt === 'tool.execute') {
-                $args = json_encode($data['args']);
+                // Unescaped flags keep non-ASCII args/results human-readable in logs
+                // instead of rendered as \uXXXX escape sequences.
+                $args = json_encode($data['args'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 $messages[] = "⚙️ Executing: {$data['name']} with $args";
             } elseif ($evt === 'tool.result') {
-                $output = is_string($data['output']) ? $data['output'] : json_encode($data['output']);
+                $output = is_string($data['output'])
+                    ? $data['output']
+                    : json_encode($data['output'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 $messages[] = "✅ Result from {$data['name']}: $output";
             } elseif ($evt === 'request.start_stream') {
                 $messages[] = "📡 Streaming response started...";

@@ -26,6 +26,126 @@ class AgentTest extends TestCase
     }
 
     /**
+     * Test: a Provider instance can be injected directly via the constructor,
+     * bypassing string-based config resolution entirely (no api_key/provider
+     * keys, no Reflection needed).
+     */
+    public function testProviderCanBeInjectedViaConstructor()
+    {
+        $mockProvider = new MockProvider([
+            ['content' => 'Hello from injected provider!']
+        ]);
+
+        $agent = new Agent($mockProvider);
+
+        $this->assertSame('Hello from injected provider!', $agent->chat('Hi'));
+    }
+
+    /**
+     * Test: setProvider() swaps the backend provider after construction.
+     */
+    public function testSetProviderSwapsBackendProvider()
+    {
+        $firstProvider = new MockProvider([['content' => 'first']]);
+        $secondProvider = new MockProvider([['content' => 'second']]);
+
+        $agent = new Agent($firstProvider);
+        $this->assertSame('first', $agent->chat('Hi'));
+
+        $agent->setProvider($secondProvider);
+        $this->assertSame('second', $agent->chat('Hi again'));
+    }
+
+    /**
+     * Test: setMaxIterations() works for a directly-injected provider, which has
+     * no config array to read 'max_iterations' from.
+     */
+    public function testSetMaxIterationsWorksWithInjectedProvider()
+    {
+        $tool = new class implements Tool {
+            public function getName(): string { return 'noop'; }
+            public function toArray(): array { return ['name' => 'noop']; }
+            public function execute(array $args): mixed { return 'ok'; }
+        };
+
+        $toolCallResponse = [
+            'content' => null,
+            'tool_calls' => [
+                [
+                    'id' => 'call_x',
+                    'function' => ['name' => 'noop', 'arguments' => json_encode([])]
+                ]
+            ]
+        ];
+
+        $mockProvider = new MockProvider(array_fill(0, 50, $toolCallResponse));
+
+        $agent = new Agent($mockProvider, '', [$tool]);
+        $agent->setMaxIterations(2);
+
+        $this->assertSame(2, $agent->getMaxIterations());
+        $this->expectException(\NanoAgent\Exceptions\AgentException::class);
+        $agent->chat('Loop forever');
+    }
+
+    /**
+     * Test: the string-based 'mock' provider no longer requires an api_key.
+     */
+    public function testMockProviderStringDoesNotRequireApiKey()
+    {
+        $agent = new Agent(['provider' => 'mock']);
+
+        $reflector = new ReflectionClass($agent);
+        $property = $reflector->getProperty('provider');
+        $property->setAccessible(true);
+
+        $this->assertInstanceOf(MockProvider::class, $property->getValue($agent));
+    }
+
+    /**
+     * Test: base_url from config is forwarded to the resolved provider.
+     */
+    public function testBaseUrlIsForwardedToProvider()
+    {
+        $agent = new Agent([
+            'provider' => 'openai',
+            'api_key' => 'test_key',
+            'model' => 'gpt-4o',
+            'base_url' => 'https://proxy.example.com/v1',
+        ]);
+
+        $provider = $this->getPrivateProperty($agent, 'provider');
+        $baseUrl = $this->getPrivateProperty($provider, 'baseUrl');
+
+        $this->assertSame('https://proxy.example.com/v1', $baseUrl);
+    }
+
+    /**
+     * Test: omitting base_url leaves the provider's own default in place.
+     */
+    public function testProviderKeepsDefaultBaseUrlWhenNotConfigured()
+    {
+        $agent = new Agent([
+            'provider' => 'openai',
+            'api_key' => 'test_key',
+            'model' => 'gpt-4o',
+        ]);
+
+        $provider = $this->getPrivateProperty($agent, 'provider');
+        $baseUrl = $this->getPrivateProperty($provider, 'baseUrl');
+
+        $this->assertSame('https://api.openai.com/v1', $baseUrl);
+    }
+
+    private function getPrivateProperty(object $object, string $name)
+    {
+        $reflector = new ReflectionClass($object);
+        $property = $reflector->getProperty($name);
+        $property->setAccessible(true);
+        return $property->getValue($object);
+    }
+
+    /**
      * Test: Chat with MockProvider
      */
     public function testChatWithMockProvider()
@@ -176,6 +296,48 @@ class AgentTest extends TestCase
     }
 
     /**
+     * Test: a tool result that can't be JSON-encoded (e.g. invalid UTF-8) is caught
+     * and surfaced as a normal error message, not a fatal error or a silently empty
+     * tool result being fed to the model.
+     */
+    public function testToolResultThatCannotBeJsonEncodedIsCaught()
+    {
+        $tool = new class implements Tool {
+            public function getName(): string { return 'broken_tool'; }
+            public function toArray(): array { return ['name' => 'broken_tool']; }
+            public function execute(array $args): mixed
+            {
+                // Invalid UTF-8 byte sequence: json_encode() will fail on this.
+                return ['text' => "\xB1\x31"];
+            }
+        };
+
+        $mockProvider = new MockProvider([
+            [
+                'content' => null,
+                'tool_calls' => [
+                    [
+                        'id' => 'call_1',
+                        'function' => ['name' => 'broken_tool', 'arguments' => '{}']
+                    ]
+                ]
+            ],
+            ['content' => 'Recovered after tool encoding error']
+        ]);
+
+        $agent = new Agent([], '', [$tool]);
+        $this->injectProvider($agent, $mockProvider);
+
+        $response = $agent->chat('Use the broken tool');
+
+        $this->assertEquals('Recovered after tool encoding error', $response);
+
+        $history = $agent->getHistory();
+        $this->assertEquals('tool', $history[2]['role']);
+        $this->assertStringStartsWith('Error executing tool:', $history[2]['content']);
+    }
+
+    /**
      * Test: Streaming
      */
     public function testStreaming()
@@ -194,6 +356,88 @@ class AgentTest extends TestCase
 
         $this->assertEquals("Streamed Content", $output);
         $this->assertEquals("Streamed Content", $result);
+    }
+
+    /**
+     * Test: stream() now executes tool calls returned by the provider (previously
+     * dropped silently) and streams the follow-up response after execution.
+     */
+    public function testStreamExecutesToolCalls()
+    {
+        $tool = new class implements Tool {
+            public function getName(): string { return 'calculator'; }
+            public function toArray(): array { return ['name' => 'calculator']; }
+            public function execute(array $args): mixed { return (string)($args['a'] + $args['b']); }
+        };
+
+        $mockProvider = new MockProvider([
+            [
+                'content' => null,
+                'tool_calls' => [
+                    [
+                        'id' => 'call_1',
+                        'function' => [
+                            'name' => 'calculator',
+                            'arguments' => json_encode(['a' => 5, 'b' => 3])
+                        ]
+                    ]
+                ]
+            ],
+            ['content' => 'The result is 8']
+        ]);
+
+        $agent = new Agent([], '', [$tool]);
+        $this->injectProvider($agent, $mockProvider);
+
+        $output = '';
+        $result = $agent->stream('Add 5 and 3', function ($chunk) use (&$output) {
+            $output .= $chunk;
+        });
+
+        $this->assertSame('The result is 8', $result);
+        $this->assertSame('The result is 8', $output);
+
+        // Same history shape as chat()'s tool loop: user, assistant tool-call,
+        // tool result, assistant final response.
+        $history = $agent->getHistory();
+        $this->assertCount(4, $history);
+        $this->assertSame('tool', $history[2]['role']);
+        $this->assertSame('8', $history[2]['content']);
+    }
+
+    /**
+     * Test: stream()'s tool loop is capped the same way chat()'s is.
+     */
+    public function testStreamToolLoopIsCapped()
+    {
+        $tool = new class implements Tool {
+            public function getName(): string { return 'noop'; }
+            public function toArray(): array { return ['name' => 'noop']; }
+            public function execute(array $args): mixed { return 'ok'; }
+        };
+
+        $toolCallResponse = [
+            'content' => null,
+            'tool_calls' => [
+                [
+                    'id' => 'call_x',
+                    'function' => ['name' => 'noop', 'arguments' => json_encode([])]
+                ]
+            ]
+        ];
+
+        $mockProvider = new MockProvider(array_fill(0, 50, $toolCallResponse));
+
+        $agent = new Agent(
+            ['provider' => 'mock', 'api_key' => 'test', 'max_iterations' => 3],
+            '',
+            [$tool]
+        );
+        $this->injectProvider($agent, $mockProvider);
+
+        $this->expectException(\NanoAgent\Exceptions\AgentException::class);
+
+        $agent->stream('Loop forever', function () {});
     }
 
     /**
