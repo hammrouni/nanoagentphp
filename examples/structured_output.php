@@ -140,7 +140,7 @@ try {
                             <div class="error-box"><?php echo htmlspecialchars($agentResponse); ?></div>
                         <?php else: ?>
                             <p>No data extracted yet. Try clicking "Extract Data" or check your API key.</p>
-                            <?php if ($provider === 'mock') echo "<p><small>Note: MockProvider might not trigger tools dynamically.</small></p>"; ?>
+                            <?php if (($llmConfig['provider'] ?? '') === 'mock') echo "<p><small>Note: MockProvider might not trigger tools dynamically.</small></p>"; ?>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>

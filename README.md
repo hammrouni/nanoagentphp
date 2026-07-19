@@ -134,6 +134,24 @@ Check the `examples/` directory for advanced use cases:
 * Anthropic (not tested)
 * DeepSeek (not tested)
 
+## Changelog
+
+### 0.3.0 (unreleased)
+
+1. Inject a custom provider directly into `Agent`, no config array needed.
+2. Configure `temperature`, `max_tokens`, and a custom `base_url` per provider.
+3. Streaming now supports tool calls.
+4. More reliable request encoding for non-English text.
+
+### 0.2.0
+
+1. HTTP requests now have timeouts and surface real API errors instead of hanging or failing silently.
+2. Tool-calling loops are capped to avoid runaway API usage.
+3. Task context no longer leaks between calls.
+4. Added static analysis (PHPStan) and a wider PHP version test matrix (8.0-8.4).
+
+### 0.1.0
+
 ## License
 
 MIT
