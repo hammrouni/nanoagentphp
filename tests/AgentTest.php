@@ -127,6 +127,55 @@ class AgentTest extends TestCase
     }
 
     /**
+     * Test: Malformed tool-call arguments are reported back to the model
+     * instead of crashing or silently passing null into the tool.
+     */
+    public function testToolUsageWithInvalidArgumentsJson()
+    {
+        $calls = [];
+        $tool = new class implements Tool {
+            public array $calls = [];
+            public function getName(): string { return 'calculator'; }
+            public function toArray(): array { return ['name' => 'calculator']; }
+            public function execute(array $args): mixed
+            {
+                $this->calls[] = $args;
+                return 'should not be called';
+            }
+        };
+
+        $mockProvider = new MockProvider([
+            [
+                'content' => null,
+                'tool_calls' => [
+                    [
+                        'id' => 'call_1',
+                        'function' => [
+                            'name' => 'calculator',
+                            'arguments' => '{not valid json'
+                        ]
+                    ]
+                ]
+            ],
+            [
+                'content' => 'Recovered after invalid arguments'
+            ]
+        ]);
+
+        $agent = new Agent([], '', [$tool]);
+        $this->injectProvider($agent, $mockProvider);
+
+        $response = $agent->chat("Add 5 and 3");
+
+        $this->assertEquals("Recovered after invalid arguments", $response);
+        $this->assertCount(0, $tool->calls, "Tool must not execute with malformed arguments.");
+
+        $history = $agent->getHistory();
+        $this->assertEquals('tool', $history[2]['role']);
+        $this->assertStringContainsString('invalid arguments JSON', $history[2]['content']);
+    }
+
+    /**
      * Test: Streaming
      */
     public function testStreaming()
@@ -145,6 +194,47 @@ class AgentTest extends TestCase
 
         $this->assertEquals("Streamed Content", $output);
         $this->assertEquals("Streamed Content", $result);
+    }
+
+    /**
+     * Test: Tool loop is capped to avoid infinite tool-calling loops
+     */
+    public function testToolLoopIsCapped()
+    {
+        $tool = new class implements Tool {
+            public function getName(): string { return 'noop'; }
+            public function toArray(): array { return ['name' => 'noop']; }
+            public function execute(array $args): mixed { return 'ok'; }
+        };
+
+        // Always respond with another tool call, never a final answer.
+        $toolCallResponse = [
+            'content' => null,
+            'tool_calls' => [
+                [
+                    'id' => 'call_x',
+                    'function' => [
+                        'name' => 'noop',
+                        'arguments' => json_encode([])
+                    ]
+                ]
+            ]
+        ];
+
+        $mockProvider = new MockProvider(array_fill(0, 50, $toolCallResponse));
+
+        $agent = new Agent(
+            ['provider' => 'mock', 'api_key' => 'test', 'max_iterations' => 3],
+            '',
+            [$tool]
+        );
+        $this->injectProvider($agent, $mockProvider);
+
+        $this->assertSame(3, $agent->getMaxIterations());
+
+        $this->expectException(\NanoAgent\Exceptions\AgentException::class);
+
+        $agent->chat("Loop forever");
     }
 
     /**

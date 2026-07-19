@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NanoAgent;
 
 use NanoAgent\Contracts\Provider;
@@ -15,7 +17,7 @@ class Agent
     /**
      * Library Version
      */
-    public const VERSION = '0.1.0';
+    public const VERSION = '0.2.0';
 
     /** @var array<array{role: string, content: string, tool_calls?: array}> Internal storage for the conversation's message history. */
     private array $history = [];
@@ -34,6 +36,9 @@ class Agent
 
     /** @var array The configuration parameters used for the LLM. */
     private array $llmConfig = [];
+
+    /** @var int Maximum number of tool-calling round-trips allowed within a single chat() call. */
+    private int $maxIterations = 10;
 
     /**
      * Agent constructor.
@@ -58,6 +63,10 @@ class Agent
 
         $this->llmConfig = $llm;
 
+        if (isset($llm['max_iterations'])) {
+            $this->maxIterations = (int) $llm['max_iterations'];
+        }
+
         $this->provider = $this->resolveProvider($llm);
         foreach ($tools as $tool) {
             $this->registerTool($tool);
@@ -72,6 +81,16 @@ class Agent
     public function getLlmConfig(): array
     {
         return $this->llmConfig;
+    }
+
+    /**
+     * Retrieve the configured maximum number of tool-calling iterations per chat() call.
+     *
+     * @return int
+     */
+    public function getMaxIterations(): int
+    {
+        return $this->maxIterations;
     }
 
     /**
@@ -164,6 +183,30 @@ class Agent
     }
 
     /**
+     * Access the current context map.
+     *
+     * Chiefly useful for snapshotting/restoring context around a scoped
+     * operation (see Task::execute()), so callers don't have to track which
+     * keys they added.
+     *
+     * @return array<string, string>
+     */
+    public function getContext(): array
+    {
+        return $this->context;
+    }
+
+    /**
+     * Overwrite/restore the context map wholesale.
+     *
+     * @param array<string, string> $context
+     */
+    public function setContext(array $context): void
+    {
+        $this->context = $context;
+    }
+
+    /**
      * Add a new tool capability to the agent.
      *
      * @param \NanoAgent\Contracts\Tool $tool
@@ -188,8 +231,18 @@ class Agent
 
         // Build the system instructions by injecting all registered context.
         $fullSystemPrompt = ContextBuilder::build($this->systemPrompt, $this->context);
-        
+
+        $iterations = 0;
+
         while (true) {
+            $iterations++;
+            if ($iterations > $this->maxIterations) {
+                throw new \NanoAgent\Exceptions\AgentException(
+                    "Exceeded maximum tool-call iterations ({$this->maxIterations}) in a single chat() call. "
+                    . "This usually means the model is stuck in a tool-calling loop."
+                );
+            }
+
             $messages = [['role' => 'system', 'content' => $fullSystemPrompt]];
             $messages = array_merge($messages, $this->history);
 
@@ -216,37 +269,40 @@ class Agent
             }
 
             // Process requested tool calls.
-            if (!empty($response['tool_calls'])) {
-                foreach ($response['tool_calls'] as $toolCall) {
-                    $functionName = $toolCall['function']['name'];
-                    $functionArgs = json_decode($toolCall['function']['arguments'], true);
-                    $callId = $toolCall['id'];
+            foreach ($response['tool_calls'] as $toolCall) {
+                $functionName = $toolCall['function']['name'];
+                $rawArgs = $toolCall['function']['arguments'] ?? '';
+                $functionArgs = json_decode($rawArgs, true);
+                $argsAreValid = json_last_error() === JSON_ERROR_NONE && is_array($functionArgs);
+                $callId = $toolCall['id'];
 
-                    $this->log('tool.execute', ['name' => $functionName, 'args' => $functionArgs]);
+                $this->log('tool.execute', ['name' => $functionName, 'args' => $argsAreValid ? $functionArgs : $rawArgs]);
 
-                    if (isset($this->tools[$functionName])) {
-                        try {
-                            $result = $this->tools[$functionName]->execute($functionArgs);
-                            $output = is_string($result) ? $result : json_encode($result);
-                        } catch (\Throwable $e) {
-                            $output = "Error executing tool: " . $e->getMessage();
-                        }
-                    } else {
-                        $output = "Tool not found: $functionName";
+                if (!$argsAreValid) {
+                    // Feed the parse failure back to the model rather than passing malformed
+                    // input to the tool, so it has a chance to retry with valid JSON.
+                    $output = "Error: tool '$functionName' received invalid arguments JSON ("
+                        . json_last_error_msg() . "): " . $rawArgs;
+                } elseif (isset($this->tools[$functionName])) {
+                    try {
+                        $result = $this->tools[$functionName]->execute($functionArgs);
+                        $output = is_string($result) ? $result : json_encode($result);
+                    } catch (\Throwable $e) {
+                        $output = "Error executing tool: " . $e->getMessage();
                     }
-
-                    // Feed the tool result back into the conversation history.
-                    $this->history[] = [
-                        'role' => 'tool',
-                        'tool_call_id' => $callId,
-                        'name' => $functionName,
-                        'content' => $output
-                    ];
-                    
-                    $this->log('tool.result', ['name' => $functionName, 'output' => $output]);
+                } else {
+                    $output = "Tool not found: $functionName";
                 }
-            } else {
-                return $response['content'] ?? '';
+
+                // Feed the tool result back into the conversation history.
+                $this->history[] = [
+                    'role' => 'tool',
+                    'tool_call_id' => $callId,
+                    'name' => $functionName,
+                    'content' => $output
+                ];
+
+                $this->log('tool.result', ['name' => $functionName, 'output' => $output]);
             }
         }
     }
