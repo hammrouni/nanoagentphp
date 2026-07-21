@@ -11,4 +11,14 @@ use RuntimeException;
  */
 class ProviderException extends RuntimeException implements NanoAgentException
 {
+    /**
+     * The HTTP status code returned by the API, if the failure originated
+     * from an error response (0 for network-level failures).
+     *
+     * @return int
+     */
+    public function getStatusCode(): int
+    {
+        return $this->getCode();
+    }
 }

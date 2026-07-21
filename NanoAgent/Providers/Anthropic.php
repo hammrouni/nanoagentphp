@@ -22,11 +22,18 @@ class Anthropic implements Provider
      * @param string $apiKey The Anthropic API key.
      * @param string $model The model to use (default: claude-3-5-sonnet-20240620).
      * @param string $apiVersion The Anthropic API version (default: 2023-06-01).
+     * @param array $options Extra request body parameters merged into every call
+     *                       (e.g. 'temperature', 'max_tokens', 'top_p', 'top_k').
+     *                       'max_tokens' defaults to 4096 unless overridden here.
+     *                       Cannot override 'model' or 'messages'.
+     * @param string $baseUrl API Base URL (default: https://api.anthropic.com).
      */
     public function __construct(
         private string $apiKey,
         private string $model = 'claude-3-5-sonnet-20240620', // Default to latest sonnet
-        private string $apiVersion = '2023-06-01'
+        private string $apiVersion = '2023-06-01',
+        private array $options = [],
+        private string $baseUrl = 'https://api.anthropic.com'
     ) {
         $this->client = new HttpClient();
     }
@@ -44,7 +51,7 @@ class Anthropic implements Provider
      */
     public function send(array $messages, array $tools = []): array
     {
-        $url = 'https://api.anthropic.com/v1/messages';
+        $url = $this->baseUrl . '/v1/messages';
         
         $headers = [
             'Content-Type: application/json',
@@ -64,11 +71,10 @@ class Anthropic implements Provider
             }
         }
 
-        $body = [
+        $body = array_merge(['max_tokens' => 4096], $this->options, [
             'model' => $this->model,
             'messages' => $cleanMessages,
-            'max_tokens' => 4096,
-        ];
+        ]);
 
         if (!empty($systemPrompt)) {
             $body['system'] = trim($systemPrompt);
@@ -95,7 +101,9 @@ class Anthropic implements Provider
         $data = $this->client->post($url, $headers, $body);
 
         if (isset($data['error'])) {
-             throw new ProviderException('Anthropic API Error: ' . json_encode($data['error']));
+             throw new ProviderException(
+                 'Anthropic API Error: ' . json_encode($data['error'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+             );
         }
 
         $content = '';
@@ -112,7 +120,7 @@ class Anthropic implements Provider
                         'type' => 'function',
                         'function' => [
                             'name' => $block['name'],
-                            'arguments' => json_encode($block['input'])
+                            'arguments' => json_encode($block['input'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
                         ]
                     ];
                 }

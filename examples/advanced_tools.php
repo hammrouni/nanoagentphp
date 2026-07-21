@@ -116,9 +116,9 @@ try {
 
     // 2. Prepare the LLM configuration.
     $llmConfig = [
-        'provider' => $config['provider'],
-        'model'    => $config['model'],
-        'api_key'  => $config['api_key']
+        'provider' => $config['provider'] ?? 'groq',
+        'model'    => $config['model']    ?? 'llama-3.3-70b-versatile',
+        'api_key'  => $config['api_key']  ?? ''
     ];
 
     // 3. Instantiate the Agent with the inventory tools.
