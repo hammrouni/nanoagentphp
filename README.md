@@ -17,9 +17,9 @@
   <a href="https://github.com/hammrouni/nanoagentphp/issues"><img src="https://img.shields.io/github/issues/hammrouni/nanoagentphp?style=flat-square&logo=github" alt="GitHub Issues"></a>
 </p>
 
-<p align="center"><strong>Bring the power of LLMs to your PHP application—without the bloat.</strong></p>
+<p align="center"><strong>Add AI agents to your PHP app in an afternoon — no Python sidecar, no framework to learn.</strong></p>
 
-NanoAgent is a lightweight library designed to strip away the complexity of modern AI development. While other libraries force you into steep learning curves, massive dependency trees, and rigid architectural patterns, NanoAgent takes a different approach: **simplicity as a feature.**
+`composer require`, write a function, done. NanoAgent is a lightweight library designed to strip away the complexity of modern AI development. While other libraries force you into steep learning curves, massive dependency trees, and rigid architectural patterns, NanoAgent takes a different approach: **simplicity as a feature.**
 
 Whether you are building a complex autonomous agent or just need to integrate smart decision-making into a project, NanoAgent lets you focus on the task, not the configuration.
 
