@@ -1,6 +1,7 @@
 # NanoAgent PHP
 
 
+[![CI](https://github.com/hammrouni/nanoagentphp/actions/workflows/ci.yml/badge.svg)](https://github.com/hammrouni/nanoagentphp/actions/workflows/ci.yml)
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/hammrouni/nanoagent?style=flat-square&logo=composer)](https://packagist.org/packages/hammrouni/nanoagent)
 [![Total Downloads](https://img.shields.io/packagist/dt/hammrouni/nanoagent?style=flat-square&logo=packagist)](https://packagist.org/packages/hammrouni/nanoagent)
 [![License](https://img.shields.io/github/license/hammrouni/nanoagentphp?style=flat-square&color=yellow)](https://github.com/hammrouni/nanoagentphp/blob/main/LICENSE)
@@ -145,17 +146,20 @@ Check the `examples/` directory for advanced use cases:
 
 ## Supported Providers
 
+Every provider below is covered by the automated test suite (see the CI badge above). Groq has also been verified against the real API.
+
 * Groq
-* OpenAI (not tested)
-* OpenRouter (not tested)
-* Anthropic (not tested)
-* DeepSeek (not tested)
+* OpenAI
+* OpenRouter
+* DeepSeek
+* Anthropic — experimental. Built separately from the others, not yet verified against the real API, and streaming isn't fully wired up in this library yet.
 
 ## Changelog
 
 ### 0.4.0 (unreleased)
 
 1. Added MCP (Model Context Protocol) client support: connect to any Streamable HTTP MCP server and register its tools on an `Agent` with `registerMcpServer()`.
+2. Clarified in the README that all providers are already covered by the mocked unit test suite.
 
 ### 0.3.0
 
