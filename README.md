@@ -1,15 +1,23 @@
-# NanoAgent PHP
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="logos/logo_transparent_white.png">
+    <img src="logos/logo_transparent.png" alt="NanoAgent" width="180">
+  </picture>
+</p>
 
+<h1 align="center">NanoAgent PHP</h1>
 
-[![CI](https://github.com/hammrouni/nanoagentphp/actions/workflows/ci.yml/badge.svg)](https://github.com/hammrouni/nanoagentphp/actions/workflows/ci.yml)
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/hammrouni/nanoagent?style=flat-square&logo=composer)](https://packagist.org/packages/hammrouni/nanoagent)
-[![Total Downloads](https://img.shields.io/packagist/dt/hammrouni/nanoagent?style=flat-square&logo=packagist)](https://packagist.org/packages/hammrouni/nanoagent)
-[![License](https://img.shields.io/github/license/hammrouni/nanoagentphp?style=flat-square&color=yellow)](https://github.com/hammrouni/nanoagentphp/blob/main/LICENSE)
-[![PHP Version](https://img.shields.io/packagist/php-v/hammrouni/nanoagent?style=flat-square&logo=php)](https://packagist.org/packages/hammrouni/nanoagent)
-[![GitHub Stars](https://img.shields.io/github/stars/hammrouni/nanoagentphp?style=flat-square&logo=github)](https://github.com/hammrouni/nanoagentphp)
-[![GitHub Issues](https://img.shields.io/github/issues/hammrouni/nanoagentphp?style=flat-square&logo=github)](https://github.com/hammrouni/nanoagentphp/issues)
+<p align="center">
+  <a href="https://github.com/hammrouni/nanoagentphp/actions/workflows/ci.yml"><img src="https://github.com/hammrouni/nanoagentphp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://packagist.org/packages/hammrouni/nanoagent"><img src="https://img.shields.io/packagist/v/hammrouni/nanoagent?style=flat-square&logo=composer" alt="Latest Version on Packagist"></a>
+  <a href="https://packagist.org/packages/hammrouni/nanoagent"><img src="https://img.shields.io/packagist/dt/hammrouni/nanoagent?style=flat-square&logo=packagist" alt="Total Downloads"></a>
+  <a href="https://github.com/hammrouni/nanoagentphp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/hammrouni/nanoagentphp?style=flat-square&color=yellow" alt="License"></a>
+  <a href="https://packagist.org/packages/hammrouni/nanoagent"><img src="https://img.shields.io/packagist/php-v/hammrouni/nanoagent?style=flat-square&logo=php" alt="PHP Version"></a>
+  <a href="https://github.com/hammrouni/nanoagentphp"><img src="https://img.shields.io/github/stars/hammrouni/nanoagentphp?style=flat-square&logo=github" alt="GitHub Stars"></a>
+  <a href="https://github.com/hammrouni/nanoagentphp/issues"><img src="https://img.shields.io/github/issues/hammrouni/nanoagentphp?style=flat-square&logo=github" alt="GitHub Issues"></a>
+</p>
 
-**Bring the power of LLMs to your PHP application—without the bloat.**
+<p align="center"><strong>Bring the power of LLMs to your PHP application—without the bloat.</strong></p>
 
 NanoAgent is a lightweight library designed to strip away the complexity of modern AI development. While other libraries force you into steep learning curves, massive dependency trees, and rigid architectural patterns, NanoAgent takes a different approach: **simplicity as a feature.**
 
