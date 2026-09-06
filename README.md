@@ -162,6 +162,11 @@ Every provider below is covered by the automated test suite (see the CI badge ab
 * DeepSeek
 * Anthropic — experimental. Built separately from the others, not yet verified against the real API, and streaming isn't fully wired up in this library yet.
 
+## 📝 Articles & Posts
+
+* [Why I Keep Coming Back to PHP (Even for AI Agents)](https://dev.to/khaled_hammrouni_bc97ab98/why-i-keep-coming-back-to-php-even-for-ai-agents-39g2) — dev.to
+* [LinkedIn article](https://www.linkedin.com/article/edit/7488693933485731840/) — LinkedIn
+
 ## Changelog
 
 ### 0.4.0 (unreleased)
