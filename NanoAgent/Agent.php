@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace NanoAgent;
 
+use NanoAgent\Contracts\Memory;
 use NanoAgent\Contracts\Provider;
 
 use NanoAgent\Utils\ContextBuilder;
@@ -17,7 +18,7 @@ class Agent
     /**
      * Library Version
      */
-    public const VERSION = '0.4.0';
+    public const VERSION = '0.5.0';
 
     /** @var array<array{role: string, content: string, tool_calls?: array}> Internal storage for the conversation's message history. */
     private array $history = [];
@@ -39,6 +40,12 @@ class Agent
 
     /** @var int Maximum number of tool-calling round-trips allowed within a single chat() call. */
     private int $maxIterations = 10;
+
+    /** @var Memory|null Optional storage driver that persists history between requests. */
+    private ?Memory $memory = null;
+
+    /** @var string|null Session id the history is stored under in $memory. */
+    private ?string $sessionId = null;
 
     /**
      * Agent constructor.
@@ -342,6 +349,7 @@ class Agent
 
             // If no tools were called, we have the final answer.
             if (empty($response['tool_calls'])) {
+                $this->persistHistory();
                 return $response['content'] ?? '';
             }
 
@@ -404,11 +412,70 @@ class Agent
     }
 
     /**
-     * Clear all messages from the conversation history.
+     * Attach a Memory driver so the conversation survives across stateless requests.
+     *
+     * The stored history for $sessionId is loaded immediately and replaces the
+     * current in-process history. From then on the history is saved after every
+     * completed chat()/stream() call and on setHistory()/clearHistory(). A call
+     * that throws mid-turn is not saved, so storage always holds the last
+     * completed turn.
+     *
+     * @param Memory $memory Storage driver (FileMemory, PdoMemory, ArrayMemory, or your own).
+     * @param string $sessionId Identifies the conversation (user id, chat id, ...).
+     */
+    public function setMemory(Memory $memory, string $sessionId): void
+    {
+        $this->memory = $memory;
+        $this->sessionId = $sessionId;
+        $this->history = $memory->load($sessionId);
+        $this->log('memory.load', ['session_id' => $sessionId, 'messages' => count($this->history)]);
+    }
+
+    /**
+     * Retrieve the attached Memory driver, if any.
+     *
+     * @return Memory|null
+     */
+    public function getMemory(): ?Memory
+    {
+        return $this->memory;
+    }
+
+    /**
+     * Retrieve the session id used with the attached Memory driver, if any.
+     *
+     * @return string|null
+     */
+    public function getSessionId(): ?string
+    {
+        return $this->sessionId;
+    }
+
+    /**
+     * Write the current history to the attached Memory driver, if any.
+     */
+    private function persistHistory(): void
+    {
+        if ($this->memory === null || $this->sessionId === null) {
+            return;
+        }
+
+        $this->memory->save($this->sessionId, $this->history);
+        $this->log('memory.save', ['session_id' => $this->sessionId, 'messages' => count($this->history)]);
+    }
+
+    /**
+     * Clear all messages from the conversation history, including the stored
+     * copy when a Memory driver is attached.
      */
     public function clearHistory(): void
     {
         $this->history = [];
+
+        if ($this->memory !== null && $this->sessionId !== null) {
+            $this->memory->clear($this->sessionId);
+            $this->log('memory.clear', ['session_id' => $this->sessionId]);
+        }
     }
 
     /**
@@ -422,13 +489,15 @@ class Agent
     }
 
     /**
-     * Overwrite/Restore the conversation history.
+     * Overwrite/Restore the conversation history. Persisted immediately when a
+     * Memory driver is attached.
      *
      * @param array $history
      */
     public function setHistory(array $history): void
     {
         $this->history = $history;
+        $this->persistHistory();
     }
 
     /**
@@ -479,6 +548,7 @@ class Agent
             $this->history[] = $assistantMessage;
 
             if (empty($response['tool_calls'])) {
+                $this->persistHistory();
                 return $response['content'] ?? '';
             }
 

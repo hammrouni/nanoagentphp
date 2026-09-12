@@ -133,6 +133,39 @@ $agent->registerMcpServer($mcpClient);
 echo $agent->chat('Ask the facebook/react repo what it does.');
 ```
 
+## 🧠 Persistent Memory
+
+PHP forgets everything between requests. Attach a memory driver and the agent loads the conversation for a session, then saves it after every completed `chat()` / `stream()` call.
+
+```php
+use NanoAgent\Memory\FileMemory;
+
+// Run on every request: a fresh Agent picks up where the last request left off.
+$agent = new Agent(llm: [...]);
+$agent->setMemory(new FileMemory(__DIR__ . '/storage/memory'), sessionId: "user-$userId");
+
+echo $agent->chat($_POST['message']); // e.g. "What is my name?" after "My name is Ada." last request
+
+$agent->clearHistory(); // wipes the stored copy too
+```
+
+| Driver | Storage | Requires |
+| --- | --- | --- |
+| `ArrayMemory` | Current process only (tests, workers) | — |
+| `FileMemory` | One JSON file per session | — |
+| `PdoMemory` | SQL table (SQLite, MySQL, PostgreSQL) | `ext-pdo` + driver |
+
+```php
+use NanoAgent\Memory\PdoMemory;
+
+$agent->setMemory(PdoMemory::sqlite(__DIR__ . '/memory.sqlite'), $sessionId);
+$agent->setMemory(new PdoMemory($existingPdo), $sessionId); // creates `nanoagent_memory` if missing
+```
+
+See the [PdoMemory guide](docs/pdo-memory.md) for MySQL/PostgreSQL connections, table schemas and cleanup.
+
+Need another backend (Redis, a framework cache, Eloquent)? Implement `NanoAgent\Contracts\Memory`: `load()`, `save()`, `clear()`.
+
 ## 📂 Examples
 
 Check the `examples/` directory for advanced use cases:
@@ -141,7 +174,7 @@ Check the `examples/` directory for advanced use cases:
 | --- | --- |
 | **[Basic Usage](examples/basic.php)** | Fundamental agent initialization and task execution. |
 | **[Chat](examples/chat.php)** | Stateful conversation loop using PHP Sessions. |
-| **[Memory Chat](examples/memory_chat.php)** | Persistent conversation history saved to JSON. |
+| **[Memory Chat](examples/memory_chat.php)** | Persistent conversation history with a pluggable memory driver. |
 | **[Structured Output](examples/structured_output.php)** | Extract JSON data from unstructured text. |
 | **[Knowledge Base](examples/knowledge_base_search.php)** | RAG: Ask questions against private documents. |
 | **[Streaming](examples/streaming.php)** | Real-time token streaming (SSE). |
@@ -169,10 +202,14 @@ Every provider below is covered by the automated test suite (see the CI badge ab
 
 ## Changelog
 
-### 0.4.0 (unreleased)
+### 0.5.0 (unreleased)
+
+1. Added persistent memory: `Agent::setMemory()` keeps conversations across requests, with `ArrayMemory`, `FileMemory` and `PdoMemory` (SQLite, MySQL, PostgreSQL) drivers, or your own via `NanoAgent\Contracts\Memory`. See the [PdoMemory guide](docs/pdo-memory.md).
+2. Clarified in the README that all providers are already covered by the mocked unit test suite.
+
+### 0.4.0
 
 1. Added MCP (Model Context Protocol) client support: connect to any Streamable HTTP MCP server and register its tools on an `Agent` with `registerMcpServer()`.
-2. Clarified in the README that all providers are already covered by the mocked unit test suite.
 
 ### 0.3.0
 
