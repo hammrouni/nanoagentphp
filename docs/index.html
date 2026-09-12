@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NanoAgent — PHP Agent Library</title>
+<meta name="description" content="Add AI agents to your PHP app in an afternoon—no Python sidecar, no framework to learn. Zero-dependency, MIT-licensed Composer package.">
+<link rel="icon" href="assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent-bright);
+    outline-offset: 3px;
+  }
+
+  a, button, .btn, .copy-btn { transition: color 0.15s var(--ease), border-color 0.15s var(--ease), background 0.15s var(--ease); }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .prose { max-width: 680px; }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  /* ---------- section scaffolding ---------- */
+
+  section { padding: 56px 0; border-bottom: 1px solid var(--line-soft); }
+  section:last-of-type { border-bottom: none; }
+
+  .sec-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--line);
+    letter-spacing: 0.08em;
+    margin: 0 0 8px;
+  }
+
+  h1, h2, h3 { font-family: var(--mono); font-weight: 600; margin: 0; }
+
+  /* ---------- brand banner ---------- */
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .brand-banner {
+    display: flex;
+    justify-content: center;
+    padding: 48px 24px 8px;
+  }
+
+  .brand-banner img {
+    width: min(100%, 260px);
+    height: auto;
+  }
+
+  .hero .tagline {
+    font-size: 1.15rem;
+    color: var(--text-dim);
+    max-width: 560px;
+    margin-bottom: 24px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 0 32px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .chips li {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    border: 1px solid var(--line-soft);
+    border-radius: 3px;
+    padding: 6px 11px;
+    letter-spacing: 0.01em;
+  }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .install .prompt { color: var(--accent-dim); }
+  .install code { white-space: nowrap; }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+  .copy-btn.copied { color: var(--accent-dim); border-color: var(--accent-dim); }
+
+  /* ---------- diagram ---------- */
+
+  .diagram { margin-top: 48px; overflow-x: auto; }
+
+  .diagram svg { width: 100%; min-width: 620px; height: auto; display: block; }
+
+  .diagram-caption {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 12px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .diagram .trace {
+      stroke-dasharray: 4 6;
+      animation: flow 1.2s linear infinite;
+    }
+  }
+
+  @keyframes flow { to { stroke-dashoffset: -20; } }
+
+  /* ---------- spec table ---------- */
+
+  .spec-table { width: 100%; border-collapse: collapse; }
+
+  .spec-table tr { border-top: 1px solid var(--line-soft); }
+  .spec-table tr:last-child { border-bottom: 1px solid var(--line-soft); }
+
+  .spec-table th, .spec-table td {
+    text-align: left;
+    padding: 16px 0;
+    vertical-align: top;
+    font-weight: 400;
+  }
+
+  .spec-table th {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--line);
+    width: 190px;
+    padding-right: 24px;
+    white-space: nowrap;
+  }
+
+  .spec-table td { color: var(--text); }
+  .spec-table td.dim { color: var(--text-dim); }
+
+  /* ---------- figures ---------- */
+
+  .figure { margin-bottom: 40px; }
+  .figure:last-child { margin-bottom: 0; }
+
+  .figure-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .figure-head h3 {
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .figure-head h3 b { color: var(--text); font-weight: 600; }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn {
+    border-color: var(--line-soft);
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+  .code-frame-bar .copy-btn.copied { color: var(--accent-bright); border-color: var(--accent-dim); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  code .kw { color: var(--accent-dim); }
+  code .fn { color: #2c6e9e; }
+  code .str { color: #3f7d4a; }
+  code .com { color: var(--paper-dim); font-style: italic; }
+
+  /* ---------- footer / cta ---------- */
+
+  .cta-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+  }
+
+  .cta-heading {
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+    margin: 6px 0 28px;
+  }
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 14px;
+    text-decoration: none;
+    padding: 11px 18px;
+    border-radius: 4px;
+    border: 1px solid var(--line-soft);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--ink-3);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .btn-primary:hover { background: var(--accent-bright); border-color: var(--accent-bright); }
+
+  .btn-ghost { color: var(--text); }
+  .btn-ghost:hover { border-color: var(--line); color: var(--accent-bright); }
+
+  footer { padding: 32px 0 48px; }
+
+  footer .wrap {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    .spec-table th { width: 120px; font-size: 11px; }
+    section { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT <span>/ v0.4</span></div>
+    <nav>
+      <a href="https://github.com/hammrouni/nanoagentphp">Source</a>
+      <a href="https://packagist.org/packages/hammrouni/nanoagent">Packagist</a>
+    </nav>
+  </div>
+</header>
+
+<div class="brand-banner">
+  <img src="assets/logo-full.png" alt="NanoAgent" width="380" height="270">
+</div>
+
+<main>
+
+  <section class="hero">
+    <div class="wrap">
+      <p class="sec-num">§1 — OVERVIEW</p>
+      <h1 class="sr-only">NanoAgent</h1>
+
+      <p class="tagline">Add AI agents to your PHP app in an afternoon — no Python sidecar, no framework to learn. Swap providers, hand it tools, connect MCP servers.</p>
+
+      <ul class="chips">
+        <li>PHP 8.0–8.4</li>
+        <li>0 runtime dependencies</li>
+        <li>MIT licensed</li>
+      </ul>
+
+      <div class="install">
+        <span class="prompt">$</span>
+        <code>composer require hammrouni/nanoagent</code>
+        <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+      </div>
+
+      <div class="diagram">
+        <svg viewBox="0 0 860 220" role="img" aria-labelledby="diagram-title">
+          <title id="diagram-title">Your PHP code calls Agent, which routes to your Tools, connected MCP servers, and the configured provider.</title>
+
+          <line x1="150" y1="110" x2="270" y2="110" style="stroke:var(--accent)" stroke-width="2" class="trace"/>
+          <line x1="390" y1="110" x2="430" y2="45"  style="stroke:var(--line)" stroke-width="1.5" class="trace"/>
+          <line x1="390" y1="110" x2="430" y2="110" style="stroke:var(--line)" stroke-width="1.5" class="trace"/>
+          <line x1="390" y1="110" x2="430" y2="175" style="stroke:var(--line)" stroke-width="1.5" class="trace"/>
+          <line x1="550" y1="45"  x2="590" y2="45"  style="stroke:var(--line-soft)" stroke-width="1.5"/>
+          <line x1="550" y1="110" x2="590" y2="110" style="stroke:var(--line-soft)" stroke-width="1.5"/>
+          <line x1="550" y1="175" x2="590" y2="175" style="stroke:var(--line-soft)" stroke-width="1.5"/>
+
+          <rect x="10" y="85" width="140" height="50" rx="3" fill="none" style="stroke:var(--text-dim)" stroke-width="1.5"/>
+          <text x="80" y="115" style="fill:var(--text);font-family:var(--mono)" font-size="13" text-anchor="middle">Your code</text>
+
+          <rect x="270" y="85" width="120" height="50" rx="3" fill="none" style="stroke:var(--accent)" stroke-width="2"/>
+          <text x="330" y="115" style="fill:var(--text);font-family:var(--mono)" font-size="13" font-weight="600" text-anchor="middle">Agent</text>
+
+          <rect x="430" y="20" width="120" height="50" rx="3" fill="none" style="stroke:var(--line)" stroke-width="1.5"/>
+          <text x="490" y="50" style="fill:var(--text);font-family:var(--mono)" font-size="13" text-anchor="middle">Tools</text>
+
+          <rect x="430" y="85" width="120" height="50" rx="3" fill="none" style="stroke:var(--line)" stroke-width="1.5"/>
+          <text x="490" y="115" style="fill:var(--text);font-family:var(--mono)" font-size="13" text-anchor="middle">MCP servers</text>
+
+          <rect x="430" y="150" width="120" height="50" rx="3" fill="none" style="stroke:var(--line)" stroke-width="1.5"/>
+          <text x="490" y="180" style="fill:var(--text);font-family:var(--mono)" font-size="13" text-anchor="middle">Provider</text>
+
+          <rect x="590" y="20" width="260" height="50" rx="3" fill="none" style="stroke:var(--line-soft)" stroke-width="1.5"/>
+          <text x="720" y="50" style="fill:var(--text-dim);font-family:var(--mono)" font-size="12" text-anchor="middle">your PHP functions</text>
+
+          <rect x="590" y="85" width="260" height="50" rx="3" fill="none" style="stroke:var(--line-soft)" stroke-width="1.5"/>
+          <text x="720" y="115" style="fill:var(--text-dim);font-family:var(--mono)" font-size="12" text-anchor="middle">Streamable HTTP</text>
+
+          <rect x="590" y="150" width="260" height="50" rx="3" fill="none" style="stroke:var(--line-soft)" stroke-width="1.5"/>
+          <text x="720" y="180" style="fill:var(--text-dim);font-family:var(--mono)" font-size="12" text-anchor="middle">Groq, OpenAI, Anthropic, ...</text>
+        </svg>
+        <p class="diagram-caption">FIG. 0 — one Agent, wired to your tools, any MCP server, and the provider you configure.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <p class="sec-num">§2 — SPECIFICATIONS</p>
+      <table class="spec-table">
+        <tr>
+          <th>Providers</th>
+          <td>OpenAI, Groq, Anthropic, DeepSeek, OpenRouter — switched with one config array</td>
+        </tr>
+        <tr>
+          <th>Architecture</th>
+          <td>Tool-first. Register plain PHP functions the agent can call.</td>
+        </tr>
+        <tr>
+          <th>Protocols</th>
+          <td>MCP over Streamable HTTP — register a server, its tools work like local ones</td>
+        </tr>
+        <tr>
+          <th>Runtime</th>
+          <td class="dim">PHP 8.0–8.4, tested in CI across the full range</td>
+        </tr>
+        <tr>
+          <th>Footprint</th>
+          <td class="dim">One Composer package. No config DSL, no framework lock-in.</td>
+        </tr>
+        <tr>
+          <th>License</th>
+          <td class="dim">MIT</td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap prose">
+      <p class="sec-num">§3 — USAGE</p>
+      <p style="color: var(--text-dim); margin: 0 0 20px;">Three steps: create an agent, give it something to call, then hand it a goal.</p>
+
+      <div class="figure">
+        <div class="figure-head">
+          <h3>FIG. 1 — <b>a basic agent</b></h3>
+        </div>
+        <div class="code-frame">
+        <div class="code-frame-bar">
+          <span class="filename"><span class="dot"></span>agent.php</span>
+          <button class="copy-btn" data-copy="use NanoAgent\Agent;
+
+$agent = new Agent(llm: [
+    'provider' => 'groq',
+    'model'    => 'llama-3.3-70b-versatile',
+    'api_key'  => getenv('GROQ_API_KEY'),
+]);
+
+echo $agent->chat('Explain what NanoAgent does, in one sentence.');">Copy</button>
+        </div>
+        <pre><code><span class="kw">use</span> NanoAgent\Agent;
+
+<span class="fn">$agent</span> = <span class="kw">new</span> Agent(llm: [
+    <span class="str">'provider'</span> =&gt; <span class="str">'groq'</span>,
+    <span class="str">'model'</span>    =&gt; <span class="str">'llama-3.3-70b-versatile'</span>,
+    <span class="str">'api_key'</span>  =&gt; getenv(<span class="str">'GROQ_API_KEY'</span>),
+]);
+
+<span class="kw">echo</span> $agent-&gt;chat(<span class="str">'Explain what NanoAgent does, in one sentence.'</span>);</code></pre>
+        </div>
+      </div>
+
+      <div class="figure">
+        <div class="figure-head">
+          <h3>FIG. 2 — <b>give it a tool</b></h3>
+        </div>
+        <div class="code-frame">
+        <div class="code-frame-bar">
+          <span class="filename"><span class="dot"></span>tools.php</span>
+          <button class="copy-btn" data-copy="use NanoAgent\Tools\FunctionTool;
+
+$calculator = new FunctionTool(
+    name: 'calculator',
+    description: 'Add two numbers',
+    parameters: [
+        'type' => 'object',
+        'properties' => [
+            'a' => ['type' => 'integer'],
+            'b' => ['type' => 'integer'],
+        ],
+        'required' => ['a', 'b'],
+    ],
+    callable: fn(array $args) => $args['a'] + $args['b']
+);
+
+$agent = new Agent(llm: [ /* ... */ ], tools: [$calculator]);">Copy</button>
+        </div>
+        <pre><code><span class="kw">use</span> NanoAgent\Tools\FunctionTool;
+
+<span class="fn">$calculator</span> = <span class="kw">new</span> FunctionTool(
+    name: <span class="str">'calculator'</span>,
+    description: <span class="str">'Add two numbers'</span>,
+    parameters: [
+        <span class="str">'type'</span> =&gt; <span class="str">'object'</span>,
+        <span class="str">'properties'</span> =&gt; [
+            <span class="str">'a'</span> =&gt; [<span class="str">'type'</span> =&gt; <span class="str">'integer'</span>],
+            <span class="str">'b'</span> =&gt; [<span class="str">'type'</span> =&gt; <span class="str">'integer'</span>],
+        ],
+        <span class="str">'required'</span> =&gt; [<span class="str">'a'</span>, <span class="str">'b'</span>],
+    ],
+    callable: fn(array $args) =&gt; $args[<span class="str">'a'</span>] + $args[<span class="str">'b'</span>]
+);
+
+<span class="fn">$agent</span> = <span class="kw">new</span> Agent(llm: [ <span class="com">/* ... */</span> ], tools: [$calculator]);</code></pre>
+        </div>
+      </div>
+
+      <div class="figure">
+        <div class="figure-head">
+          <h3>FIG. 3 — <b>a goal with background context</b></h3>
+        </div>
+        <div class="code-frame">
+        <div class="code-frame-bar">
+          <span class="filename"><span class="dot"></span>task.php</span>
+          <button class="copy-btn" data-copy="use NanoAgent\Task;
+
+$task = new Task($agent);
+$task->addContext('Project', 'NanoAgent Library');
+
+echo $task->execute('Summarize the project in one line.');">Copy</button>
+        </div>
+        <pre><code><span class="kw">use</span> NanoAgent\Task;
+
+<span class="fn">$task</span> = <span class="kw">new</span> Task($agent);
+$task-&gt;addContext(<span class="str">'Project'</span>, <span class="str">'NanoAgent Library'</span>);
+
+<span class="kw">echo</span> $task-&gt;execute(<span class="str">'Summarize the project in one line.'</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap prose">
+      <p class="sec-num">§4 — MCP DEMO</p>
+      <p style="color: var(--text-dim); margin: 0 0 20px;">Connect to any Model Context Protocol server and its tools become available to the agent alongside your own — no separate integration code.</p>
+
+      <div class="figure">
+        <div class="figure-head">
+          <h3>FIG. 4 — <b>ask a remote MCP server</b></h3>
+        </div>
+        <div class="code-frame">
+        <div class="code-frame-bar">
+          <span class="filename"><span class="dot"></span>mcp.php</span>
+          <button class="copy-btn" data-copy="use NanoAgent\Mcp\McpClient;
+
+$agent = new Agent(llm: [ /* ... */ ]);
+
+$mcpClient = new McpClient('https://mcp.deepwiki.com/mcp');
+$agent->registerMcpServer($mcpClient);
+
+echo $agent->chat('Ask the facebook/react repo what it does.');">Copy</button>
+        </div>
+        <pre><code><span class="kw">use</span> NanoAgent\Mcp\McpClient;
+
+<span class="fn">$agent</span> = <span class="kw">new</span> Agent(llm: [ <span class="com">/* ... */</span> ]);
+
+<span class="fn">$mcpClient</span> = <span class="kw">new</span> McpClient(<span class="str">'https://mcp.deepwiki.com/mcp'</span>);
+$agent-&gt;registerMcpServer($mcpClient);
+
+<span class="kw">echo</span> $agent-&gt;chat(<span class="str">'Ask the facebook/react repo what it does.'</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap prose">
+      <p class="sec-num">§5 — ARTICLES</p>
+      <p style="color: var(--text-dim); margin: 0 0 20px;">Writing about NanoAgent and why it exists.</p>
+
+      <table class="spec-table">
+        <tr>
+          <th>dev.to</th>
+          <td><a href="https://dev.to/khaled_hammrouni_bc97ab98/why-i-keep-coming-back-to-php-even-for-ai-agents-39g2">Why I Keep Coming Back to PHP (Even for AI Agents)</a></td>
+        </tr>
+        <tr>
+          <th>LinkedIn</th>
+          <td><a href="https://www.linkedin.com/article/edit/7488693933485731840/">LinkedIn article</a></td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="cta-panel">
+        <p class="sec-num">§6 — GET STARTED</p>
+        <h2 class="cta-heading">Ship your first agent today.</h2>
+        <div class="install">
+          <span class="prompt">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/hammrouni/nanoagentphp">★ Star on GitHub</a>
+          <a class="btn btn-ghost" href="https://github.com/hammrouni/nanoagentphp#readme">Read the docs</a>
+          <a class="btn btn-ghost" href="https://packagist.org/packages/hammrouni/nanoagent">View on Packagist</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>NanoAgent PHP — MIT License</span>
+    <span><a href="https://github.com/hammrouni/nanoagentphp/issues">Report an issue</a></span>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy');
+      navigator.clipboard.writeText(text).then(function () {
+        var original = btn.textContent;
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

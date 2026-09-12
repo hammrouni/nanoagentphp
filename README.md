@@ -1,16 +1,25 @@
-# NanoAgent PHP
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="logos/logo_transparent_white.png">
+    <img src="logos/logo_transparent.png" alt="NanoAgent" width="180">
+  </picture>
+</p>
 
+<h1 align="center">NanoAgent PHP</h1>
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/hammrouni/nanoagent?style=flat-square&logo=composer)](https://packagist.org/packages/hammrouni/nanoagent)
-[![Total Downloads](https://img.shields.io/packagist/dt/hammrouni/nanoagent?style=flat-square&logo=packagist)](https://packagist.org/packages/hammrouni/nanoagent)
-[![License](https://img.shields.io/github/license/hammrouni/nanoagentphp?style=flat-square&color=yellow)](https://github.com/hammrouni/nanoagentphp/blob/main/LICENSE)
-[![PHP Version](https://img.shields.io/packagist/php-v/hammrouni/nanoagent?style=flat-square&logo=php)](https://packagist.org/packages/hammrouni/nanoagent)
-[![GitHub Stars](https://img.shields.io/github/stars/hammrouni/nanoagentphp?style=flat-square&logo=github)](https://github.com/hammrouni/nanoagentphp)
-[![GitHub Issues](https://img.shields.io/github/issues/hammrouni/nanoagentphp?style=flat-square&logo=github)](https://github.com/hammrouni/nanoagentphp/issues)
+<p align="center">
+  <a href="https://github.com/hammrouni/nanoagentphp/actions/workflows/ci.yml"><img src="https://github.com/hammrouni/nanoagentphp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://packagist.org/packages/hammrouni/nanoagent"><img src="https://img.shields.io/packagist/v/hammrouni/nanoagent?style=flat-square&logo=composer" alt="Latest Version on Packagist"></a>
+  <a href="https://packagist.org/packages/hammrouni/nanoagent"><img src="https://img.shields.io/packagist/dt/hammrouni/nanoagent?style=flat-square&logo=packagist" alt="Total Downloads"></a>
+  <a href="https://github.com/hammrouni/nanoagentphp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/hammrouni/nanoagentphp?style=flat-square&color=yellow" alt="License"></a>
+  <a href="https://packagist.org/packages/hammrouni/nanoagent"><img src="https://img.shields.io/packagist/php-v/hammrouni/nanoagent?style=flat-square&logo=php" alt="PHP Version"></a>
+  <a href="https://github.com/hammrouni/nanoagentphp"><img src="https://img.shields.io/github/stars/hammrouni/nanoagentphp?style=flat-square&logo=github" alt="GitHub Stars"></a>
+  <a href="https://github.com/hammrouni/nanoagentphp/issues"><img src="https://img.shields.io/github/issues/hammrouni/nanoagentphp?style=flat-square&logo=github" alt="GitHub Issues"></a>
+</p>
 
-**Bring the power of LLMs to your PHP application—without the bloat.**
+<p align="center"><strong>Add AI agents to your PHP app in an afternoon — no Python sidecar, no framework to learn.</strong></p>
 
-NanoAgent is a lightweight library designed to strip away the complexity of modern AI development. While other libraries force you into steep learning curves, massive dependency trees, and rigid architectural patterns, NanoAgent takes a different approach: **simplicity as a feature.**
+`composer require`, write a function, done. NanoAgent is a lightweight library designed to strip away the complexity of modern AI development. While other libraries force you into steep learning curves, massive dependency trees, and rigid architectural patterns, NanoAgent takes a different approach: **simplicity as a feature.**
 
 Whether you are building a complex autonomous agent or just need to integrate smart decision-making into a project, NanoAgent lets you focus on the task, not the configuration.
 
@@ -145,17 +154,25 @@ Check the `examples/` directory for advanced use cases:
 
 ## Supported Providers
 
+Every provider below is covered by the automated test suite (see the CI badge above). Groq has also been verified against the real API.
+
 * Groq
-* OpenAI (not tested)
-* OpenRouter (not tested)
-* Anthropic (not tested)
-* DeepSeek (not tested)
+* OpenAI
+* OpenRouter
+* DeepSeek
+* Anthropic — experimental. Built separately from the others, not yet verified against the real API, and streaming isn't fully wired up in this library yet.
+
+## 📝 Articles & Posts
+
+* [Why I Keep Coming Back to PHP (Even for AI Agents)](https://dev.to/khaled_hammrouni_bc97ab98/why-i-keep-coming-back-to-php-even-for-ai-agents-39g2) — dev.to
+* [LinkedIn article](https://www.linkedin.com/article/edit/7488693933485731840/) — LinkedIn
 
 ## Changelog
 
 ### 0.4.0 (unreleased)
 
 1. Added MCP (Model Context Protocol) client support: connect to any Streamable HTTP MCP server and register its tools on an `Agent` with `registerMcpServer()`.
+2. Clarified in the README that all providers are already covered by the mocked unit test suite.
 
 ### 0.3.0
 
