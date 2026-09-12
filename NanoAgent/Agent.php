@@ -18,7 +18,7 @@ class Agent
     /**
      * Library Version
      */
-    public const VERSION = '0.4.0';
+    public const VERSION = '0.5.0';
 
     /** @var array<array{role: string, content: string, tool_calls?: array}> Internal storage for the conversation's message history. */
     private array $history = [];
