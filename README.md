@@ -202,7 +202,7 @@ Every provider below is covered by the automated test suite (see the CI badge ab
 
 ## Changelog
 
-### 0.5.0 (unreleased)
+### 0.5.0
 
 1. Added persistent memory: `Agent::setMemory()` keeps conversations across requests, with `ArrayMemory`, `FileMemory` and `PdoMemory` (SQLite, MySQL, PostgreSQL) drivers, or your own via `NanoAgent\Contracts\Memory`. See the [PdoMemory guide](docs/pdo-memory.md).
 2. Clarified in the README that all providers are already covered by the mocked unit test suite.
