@@ -21,6 +21,7 @@ config.php
 
 # Application Generated
 examples/chat_history.json
+examples/memory/
 
 # PHPUnit
 .phpunit.cache/

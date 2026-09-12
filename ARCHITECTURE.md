@@ -45,7 +45,16 @@ Represents an executable function that the AI can invoke.
 -   **Contract**: `execute(array $arguments): mixed`, `toArray(): array` (JSON Schema).
 -   **Implementation**: `FunctionTool` is a generic implementation that accepts a PHP callable.
 
-### 5. Utilities
+### 5. Memory (`NanoAgent\Contracts\Memory`)
+Persists conversation history between stateless PHP requests.
+-   **Contract**: `load(string $sessionId): array`, `save(string $sessionId, array $history): void`, `clear(string $sessionId): void`.
+-   **Wiring**: `Agent::setMemory($memory, $sessionId)` loads the stored history. The Agent saves after each completed `chat()`/`stream()` call and on `setHistory()`; `clearHistory()` also clears storage. Turns that throw are not saved.
+-   **Implementations**:
+    -   `ArrayMemory`: In-process only, for tests and long-running workers.
+    -   `FileMemory`: One JSON file per session (hashed file names, atomic rename).
+    -   `PdoMemory`: SQL table via PDO, with native upserts for SQLite, MySQL and PostgreSQL.
+
+### 6. Utilities
 -   **`ContextBuilder`**: Merges system prompts with dynamic context variables.
 -   **`HttpClient`**: A lightweight wrapper for `curl` requests, handling headers and JSON payloads for API calls.
 
@@ -77,7 +86,8 @@ NanoAgent/
 ├── Task.php            # Task abstraction
 ├── autoloader.php      # Custom autoloader for standalone usage
 ├── config.php          # Default configuration loading
-├── Contracts/          # Interfaces (Provider, Tool)
+├── Contracts/          # Interfaces (Provider, Tool, Memory)
+├── Memory/             # History storage drivers (Array, File, PDO)
 ├── Providers/          # API Implementations (Groq, OpenAI, Anthropic, etc.)
 ├── Tools/              # Tool implementations (FunctionTool)
 ├── Utils/              # Helpers (ContextBuilder, HttpClient)
