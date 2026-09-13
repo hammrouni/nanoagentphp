@@ -166,6 +166,15 @@ See the [PdoMemory guide](docs/pdo-memory.md) for MySQL/PostgreSQL connections, 
 
 Need another backend (Redis, a framework cache, Eloquent)? Implement `NanoAgent\Contracts\Memory`: `load()`, `save()`, `clear()`.
 
+## 📚 Resources
+
+* **Landing page**: [hammrouni.github.io/nanoagentphp](https://hammrouni.github.io/nanoagentphp/) — overview, specs, usage snippets and links
+* **Articles & posts**
+  * [Why I Keep Coming Back to PHP (Even for AI Agents)](https://dev.to/khaled_hammrouni_bc97ab98/why-i-keep-coming-back-to-php-even-for-ai-agents-39g2) — Dev.to
+  * [Why I Keep Coming Back to PHP, even for AI Agents](https://www.linkedin.com/pulse/why-i-keep-coming-back-php-even-ai-agents-khaled-hammrouni-dj53f) — LinkedIn
+* **Code**: [github.com/hammrouni/nanoagentphp](https://github.com/hammrouni/nanoagentphp)
+* **Package**: [packagist.org/packages/hammrouni/nanoagent](https://packagist.org/packages/hammrouni/nanoagent)
+
 ## 📂 Examples
 
 Check the `examples/` directory for advanced use cases:
@@ -194,11 +203,6 @@ Every provider below is covered by the automated test suite (see the CI badge ab
 * OpenRouter
 * DeepSeek
 * Anthropic — experimental. Built separately from the others, not yet verified against the real API, and streaming isn't fully wired up in this library yet.
-
-## 📝 Articles & Posts
-
-* [Why I Keep Coming Back to PHP (Even for AI Agents)](https://dev.to/khaled_hammrouni_bc97ab98/why-i-keep-coming-back-to-php-even-for-ai-agents-39g2) — dev.to
-* [LinkedIn article](https://www.linkedin.com/article/edit/7488693933485731840/) — LinkedIn
 
 ## Changelog
 
