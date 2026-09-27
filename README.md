@@ -29,8 +29,6 @@
 
 ## Why this exists
 
-## Why this exists
-
 Most "AI agent" libraries assume you'll bolt a Python microservice behind your app, manage a fleet of config files, or adopt a whole framework. In existing PHP environments - where your service is already talking to legacy databases, internal APIs, and core business logic - that overhead is the wrong shape. You don't need a sidecar. You need a small, boring, local library you can `composer require` into the PHP you already run, hand it your own functions, and ship.
 
 NanoAgent is that library. It is deliberately **lightweight and local-first**: one Composer package, zero runtime dependencies, no DSL, no framework lock-in, and memory that lives in your own files or database. It points at whichever provider you configure - a hosted API *or* a local model behind a compatible endpoint - so the agent can run right alongside your existing infrastructure.
