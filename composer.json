@@ -1,6 +1,6 @@
 {
     "name": "hammrouni/nanoagent",
-    "description": "NanoAgent is a lightweight library designed to strip away the complexity of modern AI development.",
+    "description": "NanoAgent is a lightweight, local-first PHP library that strips away the complexity of modern AI agent development — no Python sidecar, no framework. For Industry 4.0 / industrial IoT and edge contexts.",
     "type": "library",
     "license": "MIT",
     "homepage": "https://hammrouni.github.io/nanoagentphp/",
