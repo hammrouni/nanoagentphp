@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subscribe — NanoAgent series updates + 12-part cheatsheet</title>
+<meta name="description" content="Get each new NanoAgent PHP article by email, plus the 12-part cheatsheet when it drops. One email per article, unsubscribe anytime.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/subscribe/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://hammrouni.github.io/nanoagentphp/subscribe/">
+<meta property="og:site_name" content="NanoAgent">
+<meta property="og:title" content="Subscribe — NanoAgent series updates + 12-part cheatsheet">
+<meta property="og:description" content="Each new NanoAgent PHP article by email, plus the 12-part cheatsheet when it drops. One email per article, unsubscribe anytime.">
+<meta property="og:image" content="https://hammrouni.github.io/nanoagentphp/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Subscribe — NanoAgent series updates + 12-part cheatsheet">
+<meta name="twitter:description" content="Each new NanoAgent PHP article by email, plus the 12-part cheatsheet when it drops. One email per article, unsubscribe anytime.">
+<meta name="twitter:image" content="https://hammrouni.github.io/nanoagentphp/assets/og-image.png">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent-bright);
+    outline-offset: 3px;
+  }
+
+  a, button, input { transition: color 0.15s var(--ease), border-color 0.15s var(--ease), background 0.15s var(--ease); }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  h1, h2, h3 { font-family: var(--mono); font-weight: 600; margin: 0; }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .masthead .mark img { display: block; }
+
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  /* ---------- page ---------- */
+
+  .page { padding: 64px 0 48px; }
+
+  .page .prose { max-width: 680px; }
+
+  .sec-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--line);
+    letter-spacing: 0.08em;
+    margin: 0 0 8px;
+  }
+
+  h1 {
+    font-size: clamp(1.5rem, 4vw, 2.1rem);
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: var(--text-dim);
+    margin: 0 0 40px;
+  }
+
+  .lede b { color: var(--text); font-weight: 500; }
+
+  /* ---------- form card ---------- */
+
+  .form-card {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 32px 28px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+  }
+
+  .field { margin-bottom: 18px; }
+
+  .field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--ink-3);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 12px 14px;
+  }
+
+  .field input::placeholder { color: var(--text-dim); opacity: 0.7; }
+
+  .field input:focus { border-color: var(--accent); }
+
+  .submit-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+
+  .btn-primary:hover { background: var(--accent-bright); border-color: var(--accent-bright); }
+
+  .privacy {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin: 20px 0 0;
+  }
+
+  .privacy a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--line-soft); }
+  .privacy a:hover { color: var(--accent-bright); border-color: var(--accent-bright); }
+
+  /* ---------- what you get ---------- */
+
+  .gets {
+    margin: 40px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+
+  .gets li {
+    border: 1px solid var(--line-soft);
+    border-radius: 6px;
+    padding: 16px 18px;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .gets li b {
+    display: block;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  .gets li span { color: var(--text-dim); }
+
+  /* ---------- back link ---------- */
+
+  .back {
+    margin-top: 40px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .back a { color: var(--text-dim); text-decoration: none; }
+  .back a:hover { color: var(--accent-bright); }
+
+  footer { padding: 24px 0 40px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    .page { padding: 40px 0 32px; }
+    .form-card { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="mark" href="../"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT <span>/ v0.5</span></a>
+    <nav>
+      <a href="../">Home</a>
+      <a href="https://github.com/hammrouni/nanoagentphp">Source</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page">
+    <div class="wrap prose">
+      <p class="sec-num">§ SUBSCRIBE</p>
+      <h1>The NanoAgent series, in your inbox</h1>
+      <p class="lede">
+        A 12-part, code-first series on building AI agents in PHP — one article per week.
+        Subscribe and you get <b>each new article the day it publishes</b>, plus
+        <b>the 12-part cheatsheet</b> (every pattern, condensed to a single reference sheet)
+        the moment it drops.
+      </p>
+
+      <!--
+        FORM HOST: Formspree (free plan — 50 submissions/mo, upgrade to 500/mo free).
+        Form id: xvkgvdvg. Submissions land in Khaled's inbox directly.
+        Welcome email: sent manually for now (or wire a Formspree webhook later).
+      -->
+      <form class="form-card" action="https://formspree.io/f/xvkgvdvg" method="POST">
+        <div class="field">
+          <label for="name">Name <span style="color:var(--line)">(optional)</span></label>
+          <input type="text" id="name" name="name" placeholder="Your name" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="submit-row">
+          <button type="submit" class="btn-primary">Subscribe →</button>
+        </div>
+        <p class="privacy">
+          One email per new article, nothing else. No verification step, no spam —
+          unsubscribe anytime, and your address is used only for this list, never shared.
+        </p>
+      </form>
+
+      <ul class="gets">
+        <li><b>NEW ARTICLES</b><span>Each of the 12 parts, by email on publish day.</span></li>
+        <li><b>THE CHEATSHEET</b><span>All 12 patterns on one reference sheet, free to subscribers.</span></li>
+        <li><b>NO NOISE</b><span>No sponsors, no cross-promo spam. One email per article, that's it.</span></li>
+      </ul>
+
+      <p class="back"><a href="../">&larr; Back to the landing page</a></p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>NanoAgent PHP — MIT License</span>
+    <span>
+      <a href="https://github.com/hammrouni/nanoagentphp">GitHub</a>
+      &middot;
+      <a href="https://packagist.org/packages/hammrouni/nanoagent">Packagist</a>
+      &middot;
+      <a href="https://github.com/hammrouni/nanoagentphp/issues">Report an issue</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>
