@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calling Real APIs from a PHP Agent - Live Weather in Four Functions - NanoAgent</title>
+<meta name="description" content="Call a real REST API from a PHP agent with four functions: cURL, timeouts, graceful failure, and robust tool design.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/06-api-integration.html">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 24px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+  h3 { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px 0; }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  li { margin: 8px 0 8px 20px; }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 24px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>Calling Real APIs from a PHP Agent - Live Weather in Four Functions</h1>
+      <p>An agent that only talks is a toy. The moment you give it a tool that hits a <strong>real external API</strong>, it becomes useful - it can answer with <em>current, real</em> data instead of whatever it memorized in training.</p>
+<p>This example gives the agent a <code>FunctionTool</code> that calls <code>wttr.in</code> (a free, no-key weather API) and returns live conditions.</p>
+<h2>The tool is just a PHP function that does HTTP</h2>
+<p>Start with the tool&#39;s shape: a name, a description the model reads to decide when to use it, and a single required <code>city</code> argument.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$weatherTool = new FunctionTool(
+    name: 'fetch_live_weather',
+    description: 'Retrieves current weather for any city using a real weather API.',
+    parameters: [
+        'type' => 'object',
+        'properties' => [
+            'city' => ['type' => 'string', 'description' => 'The city name']
+        ],
+        'required' => ['city']
+    ],'>Copy</button>
+  </div>
+  <pre><code>use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$weatherTool = new FunctionTool(
+    name: &#39;fetch_live_weather&#39;,
+    description: &#39;Retrieves current weather for any city using a real weather API.&#39;,
+    parameters: [
+        &#39;type&#39; =&gt; &#39;object&#39;,
+        &#39;properties&#39; =&gt; [
+            &#39;city&#39; =&gt; [&#39;type&#39; =&gt; &#39;string&#39;, &#39;description&#39; =&gt; &#39;The city name&#39;]
+        ],
+        &#39;required&#39; =&gt; [&#39;city&#39;]
+    ],</code></pre>
+</div>
+<p>The <code>callable</code> is where the real HTTP call happens - a plain cURL request to <code>wttr.in</code>&#39;s JSON endpoint, with a timeout and a user agent so the request doesn&#39;t hang or get rejected outright.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='callable: function (array $args) {
+        $url = "https://wttr.in/" . urlencode($args['city']) . "?format=j1";
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_USERAGENT      => 'NanoAgent/1.0',
+        ]);
+        $response = curl_exec($ch);
+
+        if (curl_errno($ch)) {
+            $err = curl_error($ch);
+            curl_close($ch);
+            return "Network error while reaching weather API: $err";
+        }
+        curl_close($ch);'>Copy</button>
+  </div>
+  <pre><code>callable: function (array $args) {
+        $url = &quot;https://wttr.in/&quot; . urlencode($args[&#39;city&#39;]) . &quot;?format=j1&quot;;
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            =&gt; $url,
+            CURLOPT_RETURNTRANSFER =&gt; true,
+            CURLOPT_TIMEOUT        =&gt; 10,
+            CURLOPT_USERAGENT      =&gt; &#39;NanoAgent/1.0&#39;,
+        ]);
+        $response = curl_exec($ch);
+
+        if (curl_errno($ch)) {
+            $err = curl_error($ch);
+            curl_close($ch);
+            return &quot;Network error while reaching weather API: $err&quot;;
+        }
+        curl_close($ch);</code></pre>
+</div>
+<p>Then decode the response and hand back a plain sentence - not raw JSON - so the model has something natural to fold into its answer.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$data = json_decode($response, true);
+        $current = $data['current_condition'][0] ?? null;
+        if (!$current) return "Could not find weather data for '{$args['city']}'.";
+
+        return "Current weather in {$args['city']}: "
+             . $current['weatherDesc'][0]['value']
+             . ", {$current['temp_C']}°C.";
+    }
+);'>Copy</button>
+  </div>
+  <pre><code>$data = json_decode($response, true);
+        $current = $data[&#39;current_condition&#39;][0] ?? null;
+        if (!$current) return &quot;Could not find weather data for &#39;{$args[&#39;city&#39;]}&#39;.&quot;;
+
+        return &quot;Current weather in {$args[&#39;city&#39;]}: &quot;
+             . $current[&#39;weatherDesc&#39;][0][&#39;value&#39;]
+             . &quot;, {$current[&#39;temp_C&#39;]}°C.&quot;;
+    }
+);</code></pre>
+</div>
+<h2>The agent decides *when* to call it</h2>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$city = $_GET['city'] ?? 'London';
+
+$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a meteorological assistant. You can retrieve real-time "
+                . "weather information for any city.",
+    tools: [$weatherTool]
+);
+
+$response = $agent->chat("What is the real-time weather in $city right now?");
+echo $response;'>Copy</button>
+  </div>
+  <pre><code>$city = $_GET[&#39;city&#39;] ?? &#39;London&#39;;
+
+$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a meteorological assistant. You can retrieve real-time &quot;
+                . &quot;weather information for any city.&quot;,
+    tools: [$weatherTool]
+);
+
+$response = $agent-&gt;chat(&quot;What is the real-time weather in $city right now?&quot;);
+echo $response;</code></pre>
+</div>
+<p>The user never mentions <code>fetch<em>live</em>weather</code>. The model reads the tool&#39;s <strong>description</strong>, decides it&#39;s the right tool, fills in <code>city</code>, and the agent runs the function and folds the result into the answer. You wrote the HTTP; the model wrote the <em>decision to use it</em>.</p>
+<h2>Make the tool robust - the details that matter</h2>
+<p>A real-world tool lives or dies on error handling. Notice the patterns above:</p>
+<li><strong>Timeout</strong> (<code>CURLOPT_TIMEOUT</code>) so a slow API can&#39;t hang your request.</li>
+<li><strong>User-Agent</strong> - some APIs reject the default cURL UA.</li>
+<li><strong>Graceful failure string, not an exception.</strong> Return a human-readable error <em>as the tool result</em>. The model can then say &quot;I couldn&#39;t reach the weather service&quot; instead of your app crashing.</li>
+<li><strong>Validate the JSON</strong> before you trust <code>$data[&#39;current_condition&#39;][0]</code>.</li>
+<h2>Generalize it</h2>
+<p>Swap <code>wttr.in</code> for anything that speaks HTTP:</p>
+<li>a payments API,</li>
+<li>your own REST backend,</li>
+<li>a search engine,</li>
+<li>a CRM.</li>
+<p><strong>Rule of thumb:</strong> the tool&#39;s <em>description</em> is what the model reads, so write it like you&#39;re telling a smart intern what the tool does and when to use it. The <code>parameters</code> schema is the contract; the <code>callable</code> is your normal PHP (cURL, PDO, anything).</p>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full series</a> - each article teaches one pattern.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Structured Output in PHP - Extract JSON from Unstructured Text - NanoAgent</title>
+<meta name="description" content="Extract clean, typed JSON from unstructured text in PHP without asking the model to return raw JSON.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/04-structured-output.html">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 24px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+  h3 { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px 0; }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  li { margin: 8px 0 8px 20px; }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 24px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>Structured Output in PHP - Extract JSON from Unstructured Text</h1>
+      <p>The most useful &quot;AI feature&quot; in a real app is rarely a chatbot. It&#39;s <strong>turning a blob of unstructured text into clean, typed data</strong> - a profile, an order, a support ticket, a CV. The trick to doing this reliably is to <em>not</em> ask the model to &quot;return JSON.&quot; Instead, you define a tool with a JSON Schema and instruct the model to <strong>call that tool with the data.</strong> The schema becomes the contract.</p>
+<p>This is the &quot;tool-as-schema&quot; pattern, and it&#39;s the most reliable structured-output approach in practice.</p>
+<h2>Define the schema as a tool</h2>
+<p>First, the shape of the data you want. Each field gets a type and a description - this is a plain JSON Schema <code>object</code>, no different from any other tool&#39;s <code>parameters</code>.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$extractedData = null;
+
+$extractionTool = new FunctionTool(
+    name: 'save_profile',
+    description: 'Saves the extracted user profile data into the system.',
+    parameters: [
+        'type' => 'object',
+        'properties' => [
+            'full_name'         => ['type' => 'string',  'description' => "The person's full name"],
+            'job_title'         => ['type' => 'string',  'description' => 'Current job title'],
+            'skills'            => ['type' => 'array',   'items' => ['type' => 'string'],
+                                    'description' => 'Technical skills mentioned'],
+            'experience_years'  => ['type' => 'integer', 'description' => 'Years of experience'],
+            'is_open_to_work'   => ['type' => 'boolean', 'description' => 'Looking for opportunities']
+        ],
+        'required' => ['full_name', 'skills']
+    ],'>Copy</button>
+  </div>
+  <pre><code>use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$extractedData = null;
+
+$extractionTool = new FunctionTool(
+    name: &#39;save_profile&#39;,
+    description: &#39;Saves the extracted user profile data into the system.&#39;,
+    parameters: [
+        &#39;type&#39; =&gt; &#39;object&#39;,
+        &#39;properties&#39; =&gt; [
+            &#39;full_name&#39;         =&gt; [&#39;type&#39; =&gt; &#39;string&#39;,  &#39;description&#39; =&gt; &quot;The person&#39;s full name&quot;],
+            &#39;job_title&#39;         =&gt; [&#39;type&#39; =&gt; &#39;string&#39;,  &#39;description&#39; =&gt; &#39;Current job title&#39;],
+            &#39;skills&#39;            =&gt; [&#39;type&#39; =&gt; &#39;array&#39;,   &#39;items&#39; =&gt; [&#39;type&#39; =&gt; &#39;string&#39;],
+                                    &#39;description&#39; =&gt; &#39;Technical skills mentioned&#39;],
+            &#39;experience_years&#39;  =&gt; [&#39;type&#39; =&gt; &#39;integer&#39;, &#39;description&#39; =&gt; &#39;Years of experience&#39;],
+            &#39;is_open_to_work&#39;   =&gt; [&#39;type&#39; =&gt; &#39;boolean&#39;, &#39;description&#39; =&gt; &#39;Looking for opportunities&#39;]
+        ],
+        &#39;required&#39; =&gt; [&#39;full_name&#39;, &#39;skills&#39;]
+    ],</code></pre>
+</div>
+<p>The <code>callable</code> here doesn&#39;t do real work - it just grabs whatever arguments the model filled in and stashes them in <code>$extractedData</code> by reference, so you can use them after the chat finishes.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='callable: function (array $args) use (&$extractedData) {
+        $extractedData = $args;
+        return "Internal: Profile for {$args['full_name']} captured.";
+    }
+);'>Copy</button>
+  </div>
+  <pre><code>callable: function (array $args) use (&amp;$extractedData) {
+        $extractedData = $args;
+        return &quot;Internal: Profile for {$args[&#39;full_name&#39;]} captured.&quot;;
+    }
+);</code></pre>
+</div>
+<h2>Force the model to use only the tool</h2>
+<p>Give the agent an unstructured blob of text - a bio, in this case - and a system prompt that leaves it no other option than to call <code>save_profile</code>.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$inputText = "Hi, I'm Sarah Jenkins. I've been a Senior PHP Developer for about 8 years. "
+           . "I love Laravel, Symfony, and Docker. I'm leading a team of 4. "
+           . "Not actively looking, but open to interesting offers.";
+
+$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a precise data extraction specialist. Your ONLY task is to identify "
+                . "profile details and call the `save_profile` tool once. Answer only via tool call.",
+    tools: [$extractionTool]
+);
+
+$agent->chat($inputText);'>Copy</button>
+  </div>
+  <pre><code>$inputText = &quot;Hi, I&#39;m Sarah Jenkins. I&#39;ve been a Senior PHP Developer for about 8 years. &quot;
+           . &quot;I love Laravel, Symfony, and Docker. I&#39;m leading a team of 4. &quot;
+           . &quot;Not actively looking, but open to interesting offers.&quot;;
+
+$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a precise data extraction specialist. Your ONLY task is to identify &quot;
+                . &quot;profile details and call the `save_profile` tool once. Answer only via tool call.&quot;,
+    tools: [$extractionTool]
+);
+
+$agent-&gt;chat($inputText);</code></pre>
+</div>
+<p>After <code>chat()</code> returns, <code>$extractedData</code> holds a real, typed PHP array - no parsing, no regex, no hoping the model&#39;s JSON is valid:</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='// ['full_name' => 'Sarah Jenkins', 'job_title' => 'Senior PHP Developer',
+//  'skills' => ['Laravel','Symfony','Docker'], 'experience_years' => 8, ...]'>Copy</button>
+  </div>
+  <pre><code>// [&#39;full_name&#39; =&gt; &#39;Sarah Jenkins&#39;, &#39;job_title&#39; =&gt; &#39;Senior PHP Developer&#39;,
+//  &#39;skills&#39; =&gt; [&#39;Laravel&#39;,&#39;Symfony&#39;,&#39;Docker&#39;], &#39;experience_years&#39; =&gt; 8, ...]</code></pre>
+</div>
+<h2>Why this beats "just return JSON"</h2>
+<li><strong>The schema is enforced by the tool-calling layer</strong>, not by the model&#39;s good intentions. The model fills a defined shape; you get a guaranteed structure.</li>
+<li><strong><code>required</code> fields</strong> mean the model knows what it <em>must</em> produce.</li>
+<li><strong>Your callable is where validation happens.</strong> <code>$extractedData</code> is a real PHP array - cast, validate, persist, however you like. The model never touches your storage.</li>
+<li><strong><code>additionalProperties</code> / types</strong> keep it tight. No stray keys, no &quot;kind of a number.&quot;</li>
+<h2>Where this shines</h2>
+<li><strong>Form automation</strong> - parse a free-text email into a structured ticket.</li>
+<li><strong>ETL</strong> - clean messy upstream text into your database schema.</li>
+<li><strong>Classification</strong> - define a tool with <code>category: enum[...]</code> and you have a classifier.</li>
+<li><strong>CV parsing</strong> - the exact example above, at scale.</li>
+<p>The pattern generalizes: <strong>whatever shape you need out, declare it as a tool, and make &quot;call the tool&quot; the model&#39;s only job.</strong></p>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full series</a> - each article teaches one pattern.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Provider LLM in PHP - Switch Between Groq, OpenAI, and Mock - NanoAgent</title>
+<meta name="description" content="Switch between Groq, OpenAI, and a free offline mock with the identical agent code. The provider is just config.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/05-multi-provider.html">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 24px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+  h3 { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px 0; }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  li { margin: 8px 0 8px 20px; }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 24px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>Multi-Provider LLM in PHP - Switch Between Groq, OpenAI, and Mock</h1>
+      <p>Hard-coding one LLM provider is a trap. You want to test locally with a mock, run cheap on Groq, and fall back to OpenAI in production - <strong>without rewriting the agent.</strong> The whole provider choice is one config array.</p>
+<p>This example loops over three providers with the <em>identical</em> agent code and shows the switch is genuinely that small.</p>
+<h2>The providers are just config</h2>
+<p>Read the default provider/model/key from config once, then lay out three provider configs as a plain array - a free offline mock, your configured default (Groq), and OpenAI as a paid fallback.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='use NanoAgent\Agent;
+
+$configFile = __DIR__ . '/../NanoAgent/config.php';
+$default = file_exists($configFile) ? require $configFile : [];
+
+$apiKey   = $default['api_key']  ?? '';
+$provider = $default['provider'] ?? 'groq';
+$model    = $default['model']    ?? 'llama-3.3-70b-versatile';
+
+$configs = [
+    'Mock'   => [
+        'llm' => ['provider' => 'mock', 'model' => 'test-model', 'api_key' => 'mock-key'],
+        'description' => 'Offline mock for local development.'
+    ],
+    'Groq'   => [
+        'llm' => ['provider' => $provider, 'model' => $model, 'api_key' => $apiKey],
+        'description' => 'High-performance inference.'
+    ],
+    'OpenAI' => [
+        'llm' => ['provider' => 'openai', 'model' => 'gpt-4o', 'api_key' => getenv('OPENAI_API_KEY')],
+        'description' => 'Commercial provider.'
+    ]
+];'>Copy</button>
+  </div>
+  <pre><code>use NanoAgent\Agent;
+
+$configFile = __DIR__ . &#39;/../NanoAgent/config.php&#39;;
+$default = file_exists($configFile) ? require $configFile : [];
+
+$apiKey   = $default[&#39;api_key&#39;]  ?? &#39;&#39;;
+$provider = $default[&#39;provider&#39;] ?? &#39;groq&#39;;
+$model    = $default[&#39;model&#39;]    ?? &#39;llama-3.3-70b-versatile&#39;;
+
+$configs = [
+    &#39;Mock&#39;   =&gt; [
+        &#39;llm&#39; =&gt; [&#39;provider&#39; =&gt; &#39;mock&#39;, &#39;model&#39; =&gt; &#39;test-model&#39;, &#39;api_key&#39; =&gt; &#39;mock-key&#39;],
+        &#39;description&#39; =&gt; &#39;Offline mock for local development.&#39;
+    ],
+    &#39;Groq&#39;   =&gt; [
+        &#39;llm&#39; =&gt; [&#39;provider&#39; =&gt; $provider, &#39;model&#39; =&gt; $model, &#39;api_key&#39; =&gt; $apiKey],
+        &#39;description&#39; =&gt; &#39;High-performance inference.&#39;
+    ],
+    &#39;OpenAI&#39; =&gt; [
+        &#39;llm&#39; =&gt; [&#39;provider&#39; =&gt; &#39;openai&#39;, &#39;model&#39; =&gt; &#39;gpt-4o&#39;, &#39;api_key&#39; =&gt; getenv(&#39;OPENAI_API_KEY&#39;)],
+        &#39;description&#39; =&gt; &#39;Commercial provider.&#39;
+    ]
+];</code></pre>
+</div>
+<h2>The loop - same agent, different brain</h2>
+<p>Skip any provider you have no key for, then create an <code>Agent</code> per config and send it the same test message. Notice the <code>Agent</code> constructor call is identical every time except for the <code>llm</code> array.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='foreach ($configs as $name => $cfg) {
+    if ($name !== 'Mock' && empty($cfg['llm']['api_key'])) {
+        echo "$name: skipped (no key)\n";
+        continue;
+    }
+
+    $agent = new Agent(
+        llm: $cfg['llm'],                       // <-- the ONLY thing that changes
+        systemPrompt: "You are testing the $name provider. Reply briefly identifying yourself."
+    );'>Copy</button>
+  </div>
+  <pre><code>foreach ($configs as $name =&gt; $cfg) {
+    if ($name !== &#39;Mock&#39; &amp;&amp; empty($cfg[&#39;llm&#39;][&#39;api_key&#39;])) {
+        echo &quot;$name: skipped (no key)\n&quot;;
+        continue;
+    }
+
+    $agent = new Agent(
+        llm: $cfg[&#39;llm&#39;],                       // &lt;-- the ONLY thing that changes
+        systemPrompt: &quot;You are testing the $name provider. Reply briefly identifying yourself.&quot;
+    );</code></pre>
+</div>
+<p>Wrap the call in try/catch so one provider&#39;s outage or bad key doesn&#39;t stop you from testing the others.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='try {
+        $response = $agent->chat("Verify connection.");
+        echo "$name: OK -> $response\n";
+    } catch (Throwable $e) {
+        echo "$name: ERROR -> {$e->getMessage()}\n";
+    }
+}'>Copy</button>
+  </div>
+  <pre><code>try {
+        $response = $agent-&gt;chat(&quot;Verify connection.&quot;);
+        echo &quot;$name: OK -&gt; $response\n&quot;;
+    } catch (Throwable $e) {
+        echo &quot;$name: ERROR -&gt; {$e-&gt;getMessage()}\n&quot;;
+    }
+}</code></pre>
+</div>
+<p>The <code>new Agent(llm: ...)</code> line is the seam. <strong>Everything downstream - tools, history, streaming, structured output - is provider-agnostic.</strong> You never touch the rest of your code to change the model.</p>
+<h2>What this buys you</h2>
+<li><strong>Offline development.</strong> Point at the <code>mock</code> provider and develop/test the whole agent flow with zero API spend and zero network. No <code>.env</code> required.</li>
+<li><strong>Cost control.</strong> Route high-volume, low-stakes calls to a cheap/fast model; reserve the expensive one for the hard paths.</li>
+<li><strong>Resilience.</strong> Wrap in a fallback: try the primary, catch <code>Throwable</code>, retry on a secondary provider. Same agent object shape.</li>
+<li><strong>A/B and evals.</strong> Run the same task against several providers and compare outputs programmatically - this loop <em>is</em> an eval harness.</li>
+<h2>The fallback pattern</h2>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$providers = ['groq', 'openai'];
+foreach ($providers as $p) {
+    try {
+        return (new Agent(llm: ['provider' => $p, 'model' => $model, 'api_key' => $key]))
+               ->chat($message);
+    } catch (Throwable $e) {
+        // log and try the next provider
+    }
+}'>Copy</button>
+  </div>
+  <pre><code>$providers = [&#39;groq&#39;, &#39;openai&#39;];
+foreach ($providers as $p) {
+    try {
+        return (new Agent(llm: [&#39;provider&#39; =&gt; $p, &#39;model&#39; =&gt; $model, &#39;api_key&#39; =&gt; $key]))
+               -&gt;chat($message);
+    } catch (Throwable $e) {
+        // log and try the next provider
+    }
+}</code></pre>
+</div>
+<p><strong>Bottom line:</strong> keep the provider in config, keep the agent code generic, and &quot;switching models&quot; stops being a refactor and becomes a one-line change.</p>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full series</a> - each article teaches one pattern.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

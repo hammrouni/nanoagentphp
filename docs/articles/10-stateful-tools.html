@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stateful Tools in PHP - An Agent That Reads and Mutates Inventory - NanoAgent</title>
+<meta name="description" content="Let a PHP agent read and mutate real inventory with stateful tools: one read tool, one write tool, one agent.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/10-stateful-tools.html">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 24px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+  h3 { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px 0; }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  li { margin: 8px 0 8px 20px; }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 24px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>Stateful Tools in PHP - An Agent That Reads and Mutates Inventory</h1>
+      <p>So far the tools have been read-only (weather, search). The more interesting case is a tool that <strong>changes state</strong> - placing an order, updating a record, firing an action. The agent has to <em>query</em> state, <em>decide</em>, then <em>mutate</em> it, all in one turn.</p>
+<p>This example is an inventory agent: the user asks to buy something, the agent checks stock, then places the order.</p>
+<h2>Simulated state, real mutation</h2>
+<p>A plain PHP class stands in for a real database - an in-memory array of products, with methods to read and write it. This keeps the example runnable with no setup, while behaving exactly like a DB-backed store would.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='class ProductDatabase {
+    private array $products = [
+        'p1' => ['name' => 'Quantum Laptop', 'price' => 1500, 'stock' => 5],
+        'p2' => ['name' => 'Nano Phone',     'price' => 800,  'stock' => 0],
+        'p3' => ['name' => 'AI Headset',     'price' => 300,  'stock' => 12],
+    ];
+
+    public function search(string $query): array {
+        $out = [];
+        foreach ($this->products as $id => $p) {
+            if (stripos($p['name'], $query) !== false) $out[$id] = $p;
+        }
+        return $out;
+    }'>Copy</button>
+  </div>
+  <pre><code>class ProductDatabase {
+    private array $products = [
+        &#39;p1&#39; =&gt; [&#39;name&#39; =&gt; &#39;Quantum Laptop&#39;, &#39;price&#39; =&gt; 1500, &#39;stock&#39; =&gt; 5],
+        &#39;p2&#39; =&gt; [&#39;name&#39; =&gt; &#39;Nano Phone&#39;,     &#39;price&#39; =&gt; 800,  &#39;stock&#39; =&gt; 0],
+        &#39;p3&#39; =&gt; [&#39;name&#39; =&gt; &#39;AI Headset&#39;,     &#39;price&#39; =&gt; 300,  &#39;stock&#39; =&gt; 12],
+    ];
+
+    public function search(string $query): array {
+        $out = [];
+        foreach ($this-&gt;products as $id =&gt; $p) {
+            if (stripos($p[&#39;name&#39;], $query) !== false) $out[$id] = $p;
+        }
+        return $out;
+    }</code></pre>
+</div>
+<p><code>order()</code> is the mutating half: it validates the product exists and has enough stock <em>before</em> touching anything, then decrements the count and returns a human-readable result.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='public function order(string $id, int $qty): string {
+        if (!isset($this->products[$id])) return "Error: Product not found.";
+        if ($this->products[$id]['stock'] < $qty) return "Error: Insufficient stock.";
+        $this->products[$id]['stock'] -= $qty;   // <-- the mutation
+        return "Success: Ordered $qty of {$this->products[$id]['name']}. "
+             . "New stock: {$this->products[$id]['stock']}";
+    }
+
+    public function getInventory(): array { return $this->products; }
+}
+
+$db = new ProductDatabase();'>Copy</button>
+  </div>
+  <pre><code>public function order(string $id, int $qty): string {
+        if (!isset($this-&gt;products[$id])) return &quot;Error: Product not found.&quot;;
+        if ($this-&gt;products[$id][&#39;stock&#39;] &lt; $qty) return &quot;Error: Insufficient stock.&quot;;
+        $this-&gt;products[$id][&#39;stock&#39;] -= $qty;   // &lt;-- the mutation
+        return &quot;Success: Ordered $qty of {$this-&gt;products[$id][&#39;name&#39;]}. &quot;
+             . &quot;New stock: {$this-&gt;products[$id][&#39;stock&#39;]}&quot;;
+    }
+
+    public function getInventory(): array { return $this-&gt;products; }
+}
+
+$db = new ProductDatabase();</code></pre>
+</div>
+<h2>Two tools: one reads, one writes</h2>
+<p>The read tool is a thin wrapper around <code>$db-&gt;search()</code> - no logic of its own, just a schema the model can call:</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$searchTool = new FunctionTool(
+    name: 'search_products',
+    description: 'Search for products by name in the store inventory.',
+    parameters: [
+        'type' => 'object',
+        'properties' => ['query' => ['type' => 'string', 'description' => 'Product name or keyword']],
+        'required' => ['query'],
+        'additionalProperties' => false
+    ],
+    callable: fn(array $args) => $db->search($args['query'])
+);'>Copy</button>
+  </div>
+  <pre><code>use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$searchTool = new FunctionTool(
+    name: &#39;search_products&#39;,
+    description: &#39;Search for products by name in the store inventory.&#39;,
+    parameters: [
+        &#39;type&#39; =&gt; &#39;object&#39;,
+        &#39;properties&#39; =&gt; [&#39;query&#39; =&gt; [&#39;type&#39; =&gt; &#39;string&#39;, &#39;description&#39; =&gt; &#39;Product name or keyword&#39;]],
+        &#39;required&#39; =&gt; [&#39;query&#39;],
+        &#39;additionalProperties&#39; =&gt; false
+    ],
+    callable: fn(array $args) =&gt; $db-&gt;search($args[&#39;query&#39;])
+);</code></pre>
+</div>
+<p>The write tool is the same shape, just pointed at <code>$db-&gt;order()</code> instead - the mutation itself lives entirely in the <code>ProductDatabase</code> class, not in the tool:</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$orderTool = new FunctionTool(
+    name: 'place_order',
+    description: 'Place an order for a specific product by its ID.',
+    parameters: [
+        'type' => 'object',
+        'properties' => [
+            'product_id' => ['type' => 'string',  'description' => 'The unique product ID'],
+            'quantity'   => ['type' => 'integer', 'description' => 'Units to purchase']
+        ],
+        'required' => ['product_id', 'quantity'],
+        'additionalProperties' => false
+    ],
+    callable: fn(array $args) => $db->order($args['product_id'], $args['quantity'])
+);'>Copy</button>
+  </div>
+  <pre><code>$orderTool = new FunctionTool(
+    name: &#39;place_order&#39;,
+    description: &#39;Place an order for a specific product by its ID.&#39;,
+    parameters: [
+        &#39;type&#39; =&gt; &#39;object&#39;,
+        &#39;properties&#39; =&gt; [
+            &#39;product_id&#39; =&gt; [&#39;type&#39; =&gt; &#39;string&#39;,  &#39;description&#39; =&gt; &#39;The unique product ID&#39;],
+            &#39;quantity&#39;   =&gt; [&#39;type&#39; =&gt; &#39;integer&#39;, &#39;description&#39; =&gt; &#39;Units to purchase&#39;]
+        ],
+        &#39;required&#39; =&gt; [&#39;product_id&#39;, &#39;quantity&#39;],
+        &#39;additionalProperties&#39; =&gt; false
+    ],
+    callable: fn(array $args) =&gt; $db-&gt;order($args[&#39;product_id&#39;], $args[&#39;quantity&#39;])
+);</code></pre>
+</div>
+<h2>The agent that runs both</h2>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a retail sales assistant. You have tools 'search_products' and "
+                . "'place_order'. You MUST use these tools to check availability and place "
+                . "orders. Do not guess stock levels.",
+    tools: [$searchTool, $orderTool]
+);
+$agent->enableActivityLogging();
+
+$response = $agent->chat("I want to buy 2 Quantum Laptops. Check stock and order.");
+echo $response;'>Copy</button>
+  </div>
+  <pre><code>$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a retail sales assistant. You have tools &#39;search_products&#39; and &quot;
+                . &quot;&#39;place_order&#39;. You MUST use these tools to check availability and place &quot;
+                . &quot;orders. Do not guess stock levels.&quot;,
+    tools: [$searchTool, $orderTool]
+);
+$agent-&gt;enableActivityLogging();
+
+$response = $agent-&gt;chat(&quot;I want to buy 2 Quantum Laptops. Check stock and order.&quot;);
+echo $response;</code></pre>
+</div>
+<p>Check the database afterward and the stock is genuinely lower - this wasn&#39;t just a chat reply, the agent actually called <code>place_order</code> and it actually ran:</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='var_dump($db->getInventory()['p1']['stock']);  // 5 -> 3'>Copy</button>
+  </div>
+  <pre><code>var_dump($db-&gt;getInventory()[&#39;p1&#39;][&#39;stock&#39;]);  // 5 -&gt; 3</code></pre>
+</div>
+<p>The &quot;do not guess stock levels&quot; line in the prompt is load-bearing. Without it, a model might answer &quot;yes, we have some&quot; from memory. With it, the agent <em>must</em> call <code>search<em>products</code> to read the real number, then <code>place</em>order</code> to act on it.</p>
+<h2>The patterns that make stateful tools safe</h2>
+<li><strong>Read before write.</strong> The agent checks stock, <em>then</em> orders. The mutation is grounded in a fresh read, not an assumption.</li>
+<li><strong>Return human-readable results, not raw arrays.</strong> <code>&quot;Success: Ordered 2... New stock: 3&quot;</code> lets the model reason about the outcome and report it. A bare array gives it less to work with.</li>
+<li><strong>Fail as a result, not an exception.</strong> <code>&quot;Error: Insufficient stock.&quot;</code> is returned to the model, which can then tell the user &quot;only 0 in stock&quot; instead of your app 500ing.</li>
+<li><strong><code>additionalProperties =&gt; false</code></strong> tightens the schema so the model can&#39;t pass junk fields.</li>
+<li><strong><code>enableActivityLogging()</code></strong> so you can audit exactly which tools fired in what order - non-negotiable once tools can write.</li>
+<h2>Scaling this up</h2>
+<p>Swap <code>ProductDatabase</code> for real persistence and you&#39;ve got an agent that can <strong>read your DB, make a decision, and write back to your DB</strong> - the core of most &quot;agentic&quot; business automation (orders, tickets, inventory, bookings). The agent is the decision layer; your PHP functions are the hands.</p>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full series</a> - each article teaches one pattern.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

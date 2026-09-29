@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NanoAgent: Your First AI Agent in PHP - NanoAgent</title>
+<meta name="description" content="Build your first AI agent in PHP with NanoAgent: one agent, one custom tool, one task. Under 10 minutes, zero dependencies.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/00-basic-agent.html">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 24px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+  h3 { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px 0; }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  li { margin: 8px 0 8px 20px; }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 24px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>NanoAgent: Your First AI Agent in PHP</h1>
+      <p>PHP developers get a lot of AI examples — but almost all of them start in Python. If your app is already in PHP (and it usually is), the &quot;add an agent&quot; path looks like bolting on a sidecar or learning a framework. It doesn&#39;t have to.</p>
+<p>This is the smallest working agent in <a href="https://hammrouni.github.io/nanoagentphp/">NanoAgent</a>: one agent, one custom tool, one task.</p>
+<h2>The four pieces</h2>
+<p>An agent in NanoAgent is just four objects:</p>
+<li><strong><code>Agent</code></strong> — talks to the LLM.</li>
+<li><strong><code>FunctionTool</code></strong> — a PHP callable the model can choose to invoke.</li>
+<li><strong><code>Task</code></strong> — bundles a goal with background context.</li>
+<li><strong>A config</strong> — provider, model, API key.</li>
+<p>Let&#39;s build it piece by piece. First, the boilerplate: pull in the autoloader and the three classes you need.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='require_once __DIR__ . '/../NanoAgent/autoloader.php';
+
+use NanoAgent\Agent;
+use NanoAgent\Task;
+use NanoAgent\Tools\FunctionTool;'>Copy</button>
+  </div>
+  <pre><code>require_once __DIR__ . &#39;/../NanoAgent/autoloader.php&#39;;
+
+use NanoAgent\Agent;
+use NanoAgent\Task;
+use NanoAgent\Tools\FunctionTool;</code></pre>
+</div>
+<h3>1. Config — where the LLM connection details live</h3>
+<p>Rather than hard-code a provider and API key, read them from a <code>config.php</code> file if one exists, and fall back to sane defaults (Groq&#39;s free tier) if it doesn&#39;t. This means the same script runs out of the box for a first-time reader, and switches provider for anyone with their own config.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$configFile = __DIR__ . '/../NanoAgent/config.php';
+$config = file_exists($configFile) ? require $configFile : [];
+
+$llmConfig = [
+    'provider' => $config['provider'] ?? 'groq',
+    'model'    => $config['model']    ?? 'llama-3.3-70b-versatile',
+    'api_key'  => $config['api_key']  ?? ''
+];'>Copy</button>
+  </div>
+  <pre><code>$configFile = __DIR__ . &#39;/../NanoAgent/config.php&#39;;
+$config = file_exists($configFile) ? require $configFile : [];
+
+$llmConfig = [
+    &#39;provider&#39; =&gt; $config[&#39;provider&#39;] ?? &#39;groq&#39;,
+    &#39;model&#39;    =&gt; $config[&#39;model&#39;]    ?? &#39;llama-3.3-70b-versatile&#39;,
+    &#39;api_key&#39;  =&gt; $config[&#39;api_key&#39;]  ?? &#39;&#39;
+];</code></pre>
+</div>
+<h3>2. The tool — a PHP function the model can call</h3>
+<p>A <code>FunctionTool</code> wraps three things: a <strong>name</strong> the model refers to, a <strong>description</strong> it reads to decide when to use the tool, and a <strong>JSON Schema</strong> describing the arguments. The <code>callable</code> is just a normal PHP closure — here it fabricates a &quot;secret token&quot; from the input string.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$secretTool = new FunctionTool(
+    name: 'generate_secret_token',
+    description: 'Generates a secure token based on input string.',
+    parameters: [
+        'type' => 'object',
+        'properties' => [
+            'input' => ['type' => 'string', 'description' => 'The string to obfuscate']
+        ],
+        'required' => ['input']
+    ],
+    callable: fn(array $args) => "TOKEN_" . strtoupper(strrev($args['input'])) . "_SECURE"
+);'>Copy</button>
+  </div>
+  <pre><code>$secretTool = new FunctionTool(
+    name: &#39;generate_secret_token&#39;,
+    description: &#39;Generates a secure token based on input string.&#39;,
+    parameters: [
+        &#39;type&#39; =&gt; &#39;object&#39;,
+        &#39;properties&#39; =&gt; [
+            &#39;input&#39; =&gt; [&#39;type&#39; =&gt; &#39;string&#39;, &#39;description&#39; =&gt; &#39;The string to obfuscate&#39;]
+        ],
+        &#39;required&#39; =&gt; [&#39;input&#39;]
+    ],
+    callable: fn(array $args) =&gt; &quot;TOKEN_&quot; . strtoupper(strrev($args[&#39;input&#39;])) . &quot;_SECURE&quot;
+);</code></pre>
+</div>
+<h3>3. The agent — the brain that decides when to use the tool</h3>
+<p>The <code>Agent</code> ties the LLM config to a system prompt and the list of tools it&#39;s allowed to use. Nothing runs yet — this just assembles the pieces.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a helpful PHP technical assistant.",
+    tools: [$secretTool]
+);'>Copy</button>
+  </div>
+  <pre><code>$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a helpful PHP technical assistant.&quot;,
+    tools: [$secretTool]
+);</code></pre>
+</div>
+<h3>4. The task — the actual goal, plus context</h3>
+<p>A <code>Task</code> bundles a goal with any background context you want the model to have (here, just the project name). Calling <code>execute()</code> is what actually sends the prompt, lets the model call the tool if it wants to, and returns the final answer.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$task = new Task($agent);
+$task->addContext("Project", "NanoAgent Library");
+
+$response = $task->execute(
+    "Generate a secret token for 'NanoAgent' and explain how it was created."
+);
+
+echo $response;'>Copy</button>
+  </div>
+  <pre><code>$task = new Task($agent);
+$task-&gt;addContext(&quot;Project&quot;, &quot;NanoAgent Library&quot;);
+
+$response = $task-&gt;execute(
+    &quot;Generate a secret token for &#39;NanoAgent&#39; and explain how it was created.&quot;
+);
+
+echo $response;</code></pre>
+</div>
+<h2>Why the tool matters</h2>
+<p>The <code>FunctionTool</code> is the whole idea. You describe a PHP function with a JSON Schema, and the model decides when to call it and what to pass. <code>Task::execute()</code> formats the goal + context into a prompt, and <strong>handles the tool round-trip for you</strong> — when the model asks to call <code>generate<em>secret</em>token</code>, the agent runs your callable, feeds the result back, and continues. You never wire that loop by hand.</p>
+<h2>What this unlocks</h2>
+<p>That&#39;s the floor. Once you have an agent that can call tools, everything else is adding more tools or more agents:</p>
+<li><a href="01-stateful-chat.html">Stateful chat that survives requests</a></li>
+<li><a href="02-persistent-memory.html">Persistent memory that survives restarts</a></li>
+<li><a href="04-structured-output.html">Structured output from unstructured text</a></li>
+<li><a href="07-mcp-tools.html">MCP: remote tool servers in 4 lines</a></li>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full series</a> - each article teaches one pattern.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>
