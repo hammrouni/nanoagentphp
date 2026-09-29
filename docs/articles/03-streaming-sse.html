@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Streaming LLM Tokens in PHP with Server-Sent Events - NanoAgent</title>
+<meta name="description" content="Stream LLM tokens in PHP in real time with Server-Sent Events: the required headers and the ob_flush() calls that make it work.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/03-streaming-sse.html">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 24px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+  h3 { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px 0; }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  li { margin: 8px 0 8px 20px; }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 24px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>Streaming LLM Tokens in PHP with Server-Sent Events</h1>
+      <p>The worst part of a chat UI is the blank screen while the model thinks. Fix: <strong>stream the tokens as they&#39;re generated</strong>, not the whole reply at the end. In PHP that&#39;s Server-Sent Events (SSE) - one persistent response that keeps pushing data.</p>
+<p>NanoAgent&#39;s <code>Agent::stream()</code> hands you each token through a callback. Your job is just to format it as SSE and flush.</p>
+<h2>The streaming endpoint</h2>
+<h3>1. The route and the SSE headers</h3>
+<p>Everything below only runs when the request is asking for a stream (<code>?stream=1&amp;message=...</code>). The four headers are what turn a normal PHP response into a Server-Sent Events stream the browser will keep open and read incrementally.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='require_once __DIR__ . '/../NanoAgent/autoloader.php';
+use NanoAgent\Agent;
+
+if (isset($_GET['stream']) && !empty($_GET['message'])) {
+    header('Content-Type: text/event-stream');
+    header('Cache-Control: no-cache');
+    header('Connection: keep-alive');
+    header('X-Accel-Buffering: no');   // critical under Nginx
+
+    $userMessage = trim($_GET['message']);
+
+    $configFile = __DIR__ . '/../NanoAgent/config.php';
+    $config = file_exists($configFile) ? require $configFile : [];
+
+    $agent = new Agent(
+        llm: [
+            'provider' => $config['provider'] ?? 'groq',
+            'model'    => $config['model']    ?? 'llama-3.3-70b-versatile',
+            'api_key'  => $config['api_key']  ?? ''
+        ],
+        systemPrompt: "You are a helpful and concise streaming assistant."
+    );'>Copy</button>
+  </div>
+  <pre><code>require_once __DIR__ . &#39;/../NanoAgent/autoloader.php&#39;;
+use NanoAgent\Agent;
+
+if (isset($_GET[&#39;stream&#39;]) &amp;&amp; !empty($_GET[&#39;message&#39;])) {
+    header(&#39;Content-Type: text/event-stream&#39;);
+    header(&#39;Cache-Control: no-cache&#39;);
+    header(&#39;Connection: keep-alive&#39;);
+    header(&#39;X-Accel-Buffering: no&#39;);   // critical under Nginx
+
+    $userMessage = trim($_GET[&#39;message&#39;]);
+
+    $configFile = __DIR__ . &#39;/../NanoAgent/config.php&#39;;
+    $config = file_exists($configFile) ? require $configFile : [];
+
+    $agent = new Agent(
+        llm: [
+            &#39;provider&#39; =&gt; $config[&#39;provider&#39;] ?? &#39;groq&#39;,
+            &#39;model&#39;    =&gt; $config[&#39;model&#39;]    ?? &#39;llama-3.3-70b-versatile&#39;,
+            &#39;api_key&#39;  =&gt; $config[&#39;api_key&#39;]  ?? &#39;&#39;
+        ],
+        systemPrompt: &quot;You are a helpful and concise streaming assistant.&quot;
+    );</code></pre>
+</div>
+<h3>2. Stream - one callback per token</h3>
+<p><code>stream()</code> calls your closure once for every token the model generates. Each call formats the token as an SSE <code>data:</code> line and forces PHP to send it immediately instead of buffering it.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$agent->stream($userMessage, function ($token) {
+        echo "data: " . json_encode(['token' => $token]) . "\n\n";
+        ob_flush();
+        flush();
+    });'>Copy</button>
+  </div>
+  <pre><code>$agent-&gt;stream($userMessage, function ($token) {
+        echo &quot;data: &quot; . json_encode([&#39;token&#39; =&gt; $token]) . &quot;\n\n&quot;;
+        ob_flush();
+        flush();
+    });</code></pre>
+</div>
+<h3>3. Signal completion</h3>
+<p>Once the model is done, send a sentinel value the client can watch for, then close out the request.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='echo "data: [DONE]\n\n";
+    ob_flush();
+    flush();
+    exit;
+}'>Copy</button>
+  </div>
+  <pre><code>echo &quot;data: [DONE]\n\n&quot;;
+    ob_flush();
+    flush();
+    exit;
+}</code></pre>
+</div>
+<p>Two things are non-negotiable here:</p>
+<li><strong><code>ob_flush()</code> + <code>flush()</code> after every token.</strong> PHP buffers output; without these the browser gets nothing until the request ends, which defeats the whole point.</li>
+<li><strong><code>X-Accel-Buffering: no</code>.</strong> Nginx buffers upstream responses by default. This header stops it from holding your tokens.</li>
+<h2>The client</h2>
+<p>A plain <code>EventSource</code> - no library, no WebSocket:</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>js</div>
+    <button class='copy-btn' data-copy='const es = new EventSource(`/streaming.php?stream=1&message=${encodeURIComponent(msg)}`);
+
+es.onmessage = (e) => {
+  if (e.data === '[DONE]') { es.close(); return; }
+  const { token } = JSON.parse(e.data);
+  answerEl.textContent += token;
+};'>Copy</button>
+  </div>
+  <pre><code>const es = new EventSource(`/streaming.php?stream=1&amp;message=${encodeURIComponent(msg)}`);
+
+es.onmessage = (e) =&gt; {
+  if (e.data === &#39;[DONE]&#39;) { es.close(); return; }
+  const { token } = JSON.parse(e.data);
+  answerEl.textContent += token;
+};</code></pre>
+</div>
+<h2>Why SSE over WebSockets</h2>
+<p>For one-way token flow (model → browser), SSE is simpler: it&#39;s plain HTTP, auto-reconnects, and works through proxies that choke on WebSockets. You only need a real bidirectional socket if the client has to interrupt mid-stream - which is a separate feature.</p>
+<h2>The takeaway</h2>
+<p><code>stream()</code> turns &quot;wait 8 seconds for a wall of text&quot; into &quot;watch it type.&quot; The entire change from a blocking <code>chat()</code> is <strong>one callback + two <code>flush()</code> calls + the SSE headers.</strong> Everything else in your app stays the same.</p>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full series</a> - each article teaches one pattern.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

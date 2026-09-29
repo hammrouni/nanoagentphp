@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent Workflow in PHP - Chain a Researcher into a Writer - NanoAgent</title>
+<meta name="description" content="Chain a Researcher agent into a Writer agent in PHP: why splitting work beats one big agent.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/08-multi-agent-chain.html">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 24px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+  h3 { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px 0; }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  li { margin: 8px 0 8px 20px; }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 24px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>Multi-Agent Workflow in PHP - Chain a Researcher into a Writer</h1>
+      <p>A single agent can do a lot, but some jobs are cleaner as a <strong>pipeline</strong>: one agent gathers, another refines. The pattern is &quot;agent chain&quot; - the output of agent A becomes the input of agent B. Each agent has a narrow role and a focused system prompt, which is more reliable than one overloaded prompt trying to do both.</p>
+<p>This example: a <strong>Researcher</strong> pulls facts, a <strong>Writer</strong> turns them into a polished post.</p>
+<h2>Two agents, one data flow</h2>
+<p>A mock research tool stands in for a real data source - a lookup table keyed by topic, so the example runs with zero external dependencies.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$researchTool = new FunctionTool(
+    name: 'fetch_topic_facts',
+    description: 'Retrieves interesting facts about a given topic.',
+    parameters: [
+        'type' => 'object',
+        'properties' => [
+            'topic' => ['type' => 'string', 'description' => 'The subject to research']
+        ],
+        'required' => ['topic']
+    ],
+    callable: function (array $args) {
+        $knowledge = [
+            'php' => ['Created by Rasmus Lerdorf in 1994.',
+                      'Powers over 75% of websites with a known server-side language.',
+                      'The latest version is 8.4.'],
+            'ai'  => ['The term AI was coined in 1956.',
+                      'Transformer architecture (2017) revolutionized NLP.']
+        ];
+        return $knowledge[strtolower($args['topic'])]
+             ?? ["No specific facts found for '{$args['topic']}'."];
+    }
+);'>Copy</button>
+  </div>
+  <pre><code>use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$researchTool = new FunctionTool(
+    name: &#39;fetch_topic_facts&#39;,
+    description: &#39;Retrieves interesting facts about a given topic.&#39;,
+    parameters: [
+        &#39;type&#39; =&gt; &#39;object&#39;,
+        &#39;properties&#39; =&gt; [
+            &#39;topic&#39; =&gt; [&#39;type&#39; =&gt; &#39;string&#39;, &#39;description&#39; =&gt; &#39;The subject to research&#39;]
+        ],
+        &#39;required&#39; =&gt; [&#39;topic&#39;]
+    ],
+    callable: function (array $args) {
+        $knowledge = [
+            &#39;php&#39; =&gt; [&#39;Created by Rasmus Lerdorf in 1994.&#39;,
+                      &#39;Powers over 75% of websites with a known server-side language.&#39;,
+                      &#39;The latest version is 8.4.&#39;],
+            &#39;ai&#39;  =&gt; [&#39;The term AI was coined in 1956.&#39;,
+                      &#39;Transformer architecture (2017) revolutionized NLP.&#39;]
+        ];
+        return $knowledge[strtolower($args[&#39;topic&#39;])]
+             ?? [&quot;No specific facts found for &#39;{$args[&#39;topic&#39;]}&#39;.&quot;];
+    }
+);</code></pre>
+</div>
+<h3>1. The Researcher - its only job is to gather</h3>
+<p>Its system prompt is narrow on purpose: fetch facts with the tool, return them as a list, nothing more.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$researcher = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a research specialist. Use the 'fetch_topic_facts' tool to "
+                . "gather raw data. Return only the collected facts in a list.",
+    tools: [$researchTool]
+);'>Copy</button>
+  </div>
+  <pre><code>$researcher = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a research specialist. Use the &#39;fetch_topic_facts&#39; tool to &quot;
+                . &quot;gather raw data. Return only the collected facts in a list.&quot;,
+    tools: [$researchTool]
+);</code></pre>
+</div>
+<h3>2. The Writer - its only job is to polish, and NOT invent</h3>
+<p>The Writer gets no tools at all - it only ever sees text the Researcher already gathered, and its prompt explicitly forbids adding facts of its own.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$writer = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a creative content writer. Transform raw research facts into an "
+                . "engaging social media post with hashtags. Do not invent facts that were "
+                . "not provided."
+);'>Copy</button>
+  </div>
+  <pre><code>$writer = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a creative content writer. Transform raw research facts into an &quot;
+                . &quot;engaging social media post with hashtags. Do not invent facts that were &quot;
+                . &quot;not provided.&quot;
+);</code></pre>
+</div>
+<h2>Run the chain</h2>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$topic = 'PHP';
+
+$research = $researcher->chat("Research the topic: $topic");
+// e.g. "1. Created by Rasmus Lerdorf in 1994. 2. Powers over 75% of websites..."
+
+$post = $writer->chat("Write a post based on these facts:\n\n" . $research);
+echo $post;'>Copy</button>
+  </div>
+  <pre><code>$topic = &#39;PHP&#39;;
+
+$research = $researcher-&gt;chat(&quot;Research the topic: $topic&quot;);
+// e.g. &quot;1. Created by Rasmus Lerdorf in 1994. 2. Powers over 75% of websites...&quot;
+
+$post = $writer-&gt;chat(&quot;Write a post based on these facts:\n\n&quot; . $research);
+echo $post;</code></pre>
+</div>
+<p>The seam is trivial: <strong><code>$writer-&gt;chat(... $research ...)</code></strong> - the Researcher&#39;s string is just the Writer&#39;s prompt. There&#39;s no framework, no message bus, no orchestration library. A chain is literally one <code>chat()</code> result fed into the next <code>chat()</code>.</p>
+<h2>Why split it instead of one big agent?</h2>
+<li><strong>Focus beats scope.</strong> A prompt that says &quot;research AND write well AND don&#39;t hallucinate&quot; does all three poorly. Two prompts do each one well.</li>
+<li><strong>Different models per stage.</strong> The Researcher can be cheap and fast; the Writer can be your best model. You choose per agent because each is its own <code>new Agent(llm: ...)</code>.</li>
+<li><strong>Isolated failure.</strong> If research returns junk, you see it before it pollutes the final output. You can validate between stages.</li>
+<li><strong>Composability.</strong> Add a third stage (a Critique agent, a translator) by appending one <code>chat()</code> call.</li>
+<h2>Where this goes next</h2>
+<li><strong>Researcher → Writer → Critic</strong> - a third agent scores the post and the loop retries if it&#39;s weak.</li>
+<li><strong>Fan-out</strong> - several Researcher agents on sub-topics, then one Writer merges.</li>
+<li><strong>Each stage can carry its own tools</strong> - the Researcher with a search tool, the Writer with a brand-voice tool.</li>
+<p>The mental model: <strong>an agent is a function; a workflow is a composition of functions.</strong> PHP makes that composition boring in the best way - just call them in order.</p>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full series</a> - each article teaches one pattern.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

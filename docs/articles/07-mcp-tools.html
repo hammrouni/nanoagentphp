@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP in PHP - Connect an Agent to a Remote Tool Server in 4 Lines - NanoAgent</title>
+<meta name="description" content="Connect a PHP agent to a remote MCP tool server in four lines and reuse tools built for any language.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/07-mcp-tools.html">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 24px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+  h3 { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px 0; }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  li { margin: 8px 0 8px 20px; }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 24px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>MCP in PHP - Connect an Agent to a Remote Tool Server in 4 Lines</h1>
+      <p>If you build AI tools in more than one language, you know the tax: every integration you write for Python, you re-write for PHP. <strong>MCP (Model Context Protocol)</strong> kills that tax. It&#39;s a standard protocol for exposing tools, so your PHP agent talks to the <em>same</em> tool servers a Python, Node, or Go agent would. You don&#39;t re-implement integrations per language - you point at a server and let the agent discover the tools.</p>
+<p>This is the shortest path to a genuinely capable agent in PHP.</p>
+<h2>The four lines</h2>
+<h3>1. Connect to the MCP server</h3>
+<p><code>McpClient</code> just points at a URL - no handshake code, no auth setup for a public server like this one.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='use NanoAgent\Agent;
+use NanoAgent\Mcp\McpClient;
+
+$mcpClient = new McpClient('https://mcp.deepwiki.com/mcp');'>Copy</button>
+  </div>
+  <pre><code>use NanoAgent\Agent;
+use NanoAgent\Mcp\McpClient;
+
+$mcpClient = new McpClient(&#39;https://mcp.deepwiki.com/mcp&#39;);</code></pre>
+</div>
+<h3>2. Build the agent as usual</h3>
+<p>Nothing MCP-specific here yet - it&#39;s a normal <code>Agent</code> with a system prompt describing what it&#39;s for.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a research assistant with access to MCP tools for "
+                . "exploring GitHub repositories. The user will name a repository "
+                . "as 'owner/repo'. Use the available tools to answer their question."
+);'>Copy</button>
+  </div>
+  <pre><code>$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a research assistant with access to MCP tools for &quot;
+                . &quot;exploring GitHub repositories. The user will name a repository &quot;
+                . &quot;as &#39;owner/repo&#39;. Use the available tools to answer their question.&quot;
+);</code></pre>
+</div>
+<h3>3. Register the server, then chat</h3>
+<p><code>registerMcpServer()</code> asks the remote server what tools it offers and wires them into the agent - that&#39;s the &quot;discovery&quot; step. From here, calling <code>chat()</code> works exactly like it would with local tools.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$discovered = $agent->registerMcpServer($mcpClient);
+$agent->enableActivityLogging();
+
+$answer = $agent->chat("Repository: facebook/react\nQuestion: What does this repo do?");'>Copy</button>
+  </div>
+  <pre><code>$discovered = $agent-&gt;registerMcpServer($mcpClient);
+$agent-&gt;enableActivityLogging();
+
+$answer = $agent-&gt;chat(&quot;Repository: facebook/react\nQuestion: What does this repo do?&quot;);</code></pre>
+</div>
+<p>Connect → register → chat. <strong>The agent discovers the server&#39;s tools at runtime</strong> (that&#39;s what <code>registerMcpServer()</code> returns) and calls them exactly like local <code>FunctionTool</code>s. No tool schema by hand, no new DSL, no sidecar process.</p>
+<h2>What the agent is talking to here</h2>
+<p>The example uses <a href="https://mcp.deepwiki.com/mcp">DeepWiki&#39;s public MCP server</a> - free, no auth - which exposes tools for asking questions about the source and docs of any public GitHub repository. So the agent above can genuinely read and summarize an unfamiliar codebase. Point the same four lines at any other MCP server (search, databases, file systems, your own services) and the agent picks up <em>that</em> server&#39;s tools instead.</p>
+<h2>Local tool vs. MCP tool - the comparison</h2>
+<p>| | <code>FunctionTool</code> (local) | MCP tool (remote) |</p>
+<p>|---|---|---|</p>
+<p>| Where it runs | in your PHP process | on a remote server |</p>
+<p>| Who defines it | you, in PHP | the MCP server |</p>
+<p>| Reuse across languages | no | <strong>yes - one server, any client</strong> |</p>
+<p>| Auth / infra | none | server handles it |</p>
+<p>| Discovery | you list them | <strong>automatic via <code>registerMcpServer()</code></strong> |</p>
+<p>You use <strong>local tools</strong> for logic that lives in your app (your DB, your business rules). You use <strong>MCP</strong> for capabilities that should be shared, versioned, or maintained by someone else.</p>
+<h2>Why this matters for PHP specifically</h2>
+<p>PHP shops don&#39;t leave PHP to add an AI feature. MCP means they don&#39;t have to <em>build</em> the feature either - point at a server that already has the tool. <strong>The agent is a thin PHP layer over a standard protocol</strong>, which is exactly the shape you want for a language that has no AI framework ecosystem.</p>
+<h2>Getting started</h2>
+<li>Find or run an MCP server (DeepWiki is a zero-config one).</li>
+<li><code>new McpClient($url)</code>.</li>
+<li><code>$agent-&gt;registerMcpServer($client)</code>.</li>
+<li>Ask it something the server can answer.</li>
+<p>That&#39;s the whole integration.</p>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full series</a> - each article teaches one pattern.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

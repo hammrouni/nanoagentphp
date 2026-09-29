@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG in PHP - Answer From Your Own Docs, Not the Model's Memory - NanoAgent</title>
+<meta name="description" content="Build RAG in PHP with a search tool and no vector database, plus the prompt that keeps it grounded and cited.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/09-rag-knowledge-base.html">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 24px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+  h3 { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px 0; }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  li { margin: 8px 0 8px 20px; }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 24px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>RAG in PHP - Answer From Your Own Docs, Not the Model's Memory</h1>
+      <p>The failure mode you hit the moment you point an LLM at internal questions: it <strong>hallucinates policy</strong> that sounds right but was never written. &quot;Can I work from Hawaii for two months?&quot; is exactly the kind of question where a confident wrong answer costs you real money.</p>
+<p>Retrieval-Augmented Generation (RAG) fixes it: <strong>retrieve the relevant doc first, then answer from that - and say so when there&#39;s no answer.</strong> In NanoAgent, RAG is just a search <em>tool</em>. No vector database required to start.</p>
+<h2>The knowledge base (a plain array here)</h2>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$knowledgeBase = [
+    'policy_wfh' => [
+        'title' => 'Remote Work Policy 2024',
+        'content' => 'Employees may work remotely up to 3 days a week. Full remote work '
+                    . 'requires Director approval. Working from international locations is '
+                    . 'limited to 30 days per year due to tax implications.'
+    ],
+    'policy_holiday' => [
+        'title' => 'Holiday Schedule 2024',
+        'content' => 'Closed on New Year\'s Day, Memorial Day, Independence Day, Labor Day, '
+                    . 'Thanksgiving, and Christmas Day.'
+    ],
+    'it_support' => [
+        'title' => 'IT Support Contacts',
+        'content' => 'Urgent: ext 5555. Non-urgent: support@company.com. Password resets via portal.'
+    ]
+];'>Copy</button>
+  </div>
+  <pre><code>$knowledgeBase = [
+    &#39;policy_wfh&#39; =&gt; [
+        &#39;title&#39; =&gt; &#39;Remote Work Policy 2024&#39;,
+        &#39;content&#39; =&gt; &#39;Employees may work remotely up to 3 days a week. Full remote work &#39;
+                    . &#39;requires Director approval. Working from international locations is &#39;
+                    . &#39;limited to 30 days per year due to tax implications.&#39;
+    ],
+    &#39;policy_holiday&#39; =&gt; [
+        &#39;title&#39; =&gt; &#39;Holiday Schedule 2024&#39;,
+        &#39;content&#39; =&gt; &#39;Closed on New Year\&#39;s Day, Memorial Day, Independence Day, Labor Day, &#39;
+                    . &#39;Thanksgiving, and Christmas Day.&#39;
+    ],
+    &#39;it_support&#39; =&gt; [
+        &#39;title&#39; =&gt; &#39;IT Support Contacts&#39;,
+        &#39;content&#39; =&gt; &#39;Urgent: ext 5555. Non-urgent: support@company.com. Password resets via portal.&#39;
+    ]
+];</code></pre>
+</div>
+<h2>The search tool</h2>
+<p>The tool takes one argument - free-text keywords - and describes itself as a policy search, so the model knows to reach for it on anything HR-shaped.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$searchTool = new FunctionTool(
+    name: 'search_knowledge_base',
+    description: 'Searches the internal knowledge base for policy documents. Input keywords.',
+    parameters: [
+        'type' => 'object',
+        'properties' => [
+            'query' => ['type' => 'string', 'description' => 'Keywords to search for']
+        ],
+        'required' => ['query']
+    ],'>Copy</button>
+  </div>
+  <pre><code>use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$searchTool = new FunctionTool(
+    name: &#39;search_knowledge_base&#39;,
+    description: &#39;Searches the internal knowledge base for policy documents. Input keywords.&#39;,
+    parameters: [
+        &#39;type&#39; =&gt; &#39;object&#39;,
+        &#39;properties&#39; =&gt; [
+            &#39;query&#39; =&gt; [&#39;type&#39; =&gt; &#39;string&#39;, &#39;description&#39; =&gt; &#39;Keywords to search for&#39;]
+        ],
+        &#39;required&#39; =&gt; [&#39;query&#39;]
+    ],</code></pre>
+</div>
+<p>The <code>callable</code> does a plain case-insensitive substring match against title and content, and returns either the matching documents or an explicit &quot;nothing found&quot; - never a guess.</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='callable: function (array $args) use ($knowledgeBase) {
+        $q = strtolower($args['query']);
+        $hits = [];
+        foreach ($knowledgeBase as $doc) {
+            if (str_contains(strtolower($doc['title']), $q)
+                || str_contains(strtolower($doc['content']), $q)) {
+                $hits[] = "Title: {$doc['title']}\nContent: {$doc['content']}";
+            }
+        }
+        return $hits
+             ? implode("\n\n---\n\n", $hits)
+             : "No relevant documents found.";
+    }
+);'>Copy</button>
+  </div>
+  <pre><code>callable: function (array $args) use ($knowledgeBase) {
+        $q = strtolower($args[&#39;query&#39;]);
+        $hits = [];
+        foreach ($knowledgeBase as $doc) {
+            if (str_contains(strtolower($doc[&#39;title&#39;]), $q)
+                || str_contains(strtolower($doc[&#39;content&#39;]), $q)) {
+                $hits[] = &quot;Title: {$doc[&#39;title&#39;]}\nContent: {$doc[&#39;content&#39;]}&quot;;
+            }
+        }
+        return $hits
+             ? implode(&quot;\n\n---\n\n&quot;, $hits)
+             : &quot;No relevant documents found.&quot;;
+    }
+);</code></pre>
+</div>
+<h2>The agent - and the prompt that makes RAG safe</h2>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a professional HR assistant. You must ONLY answer based on the "
+                . "search results. If the information is not present, politely say so. "
+                . "Always cite the document title.",
+    tools: [$searchTool]
+);
+
+$response = $agent->chat("Can I work from Hawaii for two months?");
+echo $response;'>Copy</button>
+  </div>
+  <pre><code>$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a professional HR assistant. You must ONLY answer based on the &quot;
+                . &quot;search results. If the information is not present, politely say so. &quot;
+                . &quot;Always cite the document title.&quot;,
+    tools: [$searchTool]
+);
+
+$response = $agent-&gt;chat(&quot;Can I work from Hawaii for two months?&quot;);
+echo $response;</code></pre>
+</div>
+<p>That last prompt line is the whole safety model. Three rules do the heavy lifting:</p>
+<li><strong>&quot;ONLY answer based on the search results&quot;</strong> - no training-data memory allowed.</li>
+<li><strong>&quot;If not present, say so&quot;</strong> - the model is <em>permitted</em> to decline, which is what stops the confident hallucination.</li>
+<li><strong>&quot;Cite the document title&quot;</strong> - every claim is traceable to a source.</li>
+<p>For the Hawaii question, the tool retrieves <code>Remote Work Policy 2024</code> (it contains &quot;international locations&quot;), and the agent answers: <em>limited to 30 days/year, so two months isn&#39;t allowed - per Remote Work Policy 2024.</em> Grounded, cited, correct.</p>
+<h2>From array to real RAG - the same seam</h2>
+<p>The only thing that changes as you scale is what the <code>callable</code> does:</p>
+<p>| Stage | The <code>search<em>knowledge</em>base</code> callable does |</p>
+<p>|---|---|</p>
+<p>| Demo | keyword scan of a PHP array |</p>
+<p>| Real (small) | query your SQL/Postgres docs table |</p>
+<p>| Real (large) | embed the query + docs, hit a <strong>vector store</strong> (Qdrant, pgvector) |</p>
+<p><strong>The agent code never changes.</strong> You keep the same tool name and the same prompt; you just make retrieval smarter inside the function. Start with the dumb keyword search - it&#39;s enough to prove the pattern and to handle small corpora - and upgrade the retrieval when you need to.</p>
+<h2>Why tools (not pre-prompting) for RAG</h2>
+<p>You could stuff the whole doc into the prompt. That blows the context window and wastes tokens on irrelevant content. A <em>tool</em> lets the model decide <strong>what to retrieve and when</strong>, pulling only what&#39;s relevant. As your corpus grows, that&#39;s the difference between &quot;works&quot; and &quot;doesn&#39;t fit.&quot;</p>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full series</a> - each article teaches one pattern.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

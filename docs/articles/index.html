@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The NanoAgent Series - 12 Articles on PHP AI Agents</title>
+<meta name="description" content="A complete 12-part series: from your first agent to multi-tool orchestration. Learn PHP AI agents with real code and one pattern per article.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 12px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+
+  .tagline {
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    margin: 0 0 32px 0;
+  }
+
+  .series-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+  }
+
+  .series-item {
+    display: block;
+    padding: 24px;
+    border: 1px solid var(--line-soft);
+    border-radius: 6px;
+    background: rgba(77, 115, 149, 0.05);
+    transition: all 0.2s var(--ease);
+  }
+
+  .series-item:hover {
+    background: rgba(77, 115, 149, 0.1);
+    border-color: var(--accent);
+  }
+
+  .series-item .number {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--line);
+    letter-spacing: 0.08em;
+    margin: 0 0 8px;
+  }
+
+  .series-item h3 {
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    color: var(--text);
+  }
+
+  .series-item a {
+    text-decoration: none;
+  }
+
+  .series-item a:hover h3 {
+    color: var(--accent-bright);
+  }
+
+  .series-item p {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+    .series-list { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>The NanoAgent Series</h1>
+      <p class="tagline">12 articles, one pattern each - from your first agent to multi-tool orchestration.</p>
+
+      <div class="series-list">
+        <a href="00-basic-agent.html" class="series-item">
+          <p class="number">Article 00</p>
+          <h3>NanoAgent: Your First AI Agent in PHP</h3>
+          <p>Agent + tool + task, the floor</p>
+        </a>
+
+        <a href="01-stateful-chat.html" class="series-item">
+          <p class="number">Article 01</p>
+          <h3>Stateful Chat in PHP - History That Survives Requests</h3>
+          <p>$_SESSION history loop</p>
+        </a>
+
+        <a href="02-persistent-memory.html" class="series-item">
+          <p class="number">Article 02</p>
+          <h3>Persistent Memory Chat in PHP - History That Survives Restarts</h3>
+          <p>setMemory() + FileMemory/ArrayMemory/PdoMemory drivers</p>
+        </a>
+
+        <a href="03-streaming-sse.html" class="series-item">
+          <p class="number">Article 03</p>
+          <h3>Streaming LLM Tokens in PHP with Server-Sent Events</h3>
+          <p>stream() + SSE + flush</p>
+        </a>
+
+        <a href="04-structured-output.html" class="series-item">
+          <p class="number">Article 04</p>
+          <h3>Structured Output in PHP - Extract JSON from Text</h3>
+          <p>tool-as-schema extraction</p>
+        </a>
+
+        <a href="05-multi-provider.html" class="series-item">
+          <p class="number">Article 05</p>
+          <h3>Multi-Provider LLM in PHP - Switch Groq/OpenAI/Mock</h3>
+          <p>provider = config, fallback</p>
+        </a>
+
+        <a href="06-api-integration.html" class="series-item">
+          <p class="number">Article 06</p>
+          <h3>Calling Real APIs from a PHP Agent - Live Weather</h3>
+          <p>FunctionTool that does cURL</p>
+        </a>
+
+        <a href="07-mcp-tools.html" class="series-item">
+          <p class="number">Article 07</p>
+          <h3>MCP in PHP - Remote Tool Server in 4 Lines</h3>
+          <p>McpClient + registerMcpServer()</p>
+        </a>
+
+        <a href="08-multi-agent-chain.html" class="series-item">
+          <p class="number">Article 08</p>
+          <h3>Multi-Agent Workflow in PHP - Researcher into Writer</h3>
+          <p>agent chain composition</p>
+        </a>
+
+        <a href="09-rag-knowledge-base.html" class="series-item">
+          <p class="number">Article 09</p>
+          <h3>RAG in PHP - Answer From Your Own Docs</h3>
+          <p>search-tool RAG + anti-hallucination prompt</p>
+        </a>
+
+        <a href="10-stateful-tools.html" class="series-item">
+          <p class="number">Article 10</p>
+          <h3>Stateful Tools in PHP - Agent That Mutates Inventory</h3>
+          <p>read -> decide -> write</p>
+        </a>
+
+        <a href="11-multi-tool-orchestration.html" class="series-item">
+          <p class="number">Article 11</p>
+          <h3>Multi-Tool Orchestration in PHP - One Agent, Many Tools</h3>
+          <p>model picks + orders the tools</p>
+        </a>
+      </div>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full library</a>.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

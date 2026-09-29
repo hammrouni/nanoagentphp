@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Tool Orchestration in PHP - One Agent, Many Tools, One Answer - NanoAgent</title>
+<meta name="description" content="Give one PHP agent several tools and let the model decide which to call and in what order, chaining results.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/articles/11-multi-tool-orchestration.html">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 24px 0; }
+  h2 { font-family: var(--mono); font-size: 1.3rem; font-weight: 600; margin: 32px 0 16px 0; }
+  h3 { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px 0; }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  li { margin: 8px 0 8px 20px; }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 24px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .cta-panel h2 { margin-top: 0; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>Multi-Tool Orchestration in PHP - One Agent, Many Tools, One Answer</h1>
+      <p>A single tool is easy to reason about. The interesting problem is an agent with <strong>several specialized tools</strong> that has to figure out <em>which</em> to call, in <em>what order</em>, and how to combine the results into one answer.</p>
+<p>This example is a personal concierge with three tools - location, weather, events - and the user&#39;s request needs all three chained together: <em>&quot;Check where I am, get the weather there, and see if there are any jazz events tonight.&quot;</em></p>
+<h2>Three focused tools</h2>
+<p>The first tool takes no input at all - it just reports where the (simulated) user is:</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$locationTool = new FunctionTool(
+    name: 'detect_user_location',
+    description: 'Determines the user\'s current city and country.',
+    parameters: ['type' => 'object', 'properties' => new stdClass()],  // no params
+    callable: fn() => ['city' => 'Paris', 'country' => 'France']
+);'>Copy</button>
+  </div>
+  <pre><code>use NanoAgent\Agent;
+use NanoAgent\Tools\FunctionTool;
+
+$locationTool = new FunctionTool(
+    name: &#39;detect_user_location&#39;,
+    description: &#39;Determines the user\&#39;s current city and country.&#39;,
+    parameters: [&#39;type&#39; =&gt; &#39;object&#39;, &#39;properties&#39; =&gt; new stdClass()],  // no params
+    callable: fn() =&gt; [&#39;city&#39; =&gt; &#39;Paris&#39;, &#39;country&#39; =&gt; &#39;France&#39;]
+);</code></pre>
+</div>
+<p>The second and third tools both take a <code>city</code> - the value the location tool just produced is what will get passed into these two:</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$weatherTool = new FunctionTool(
+    name: 'get_current_weather',
+    description: 'Fetches the live weather forecast for a given city.',
+    parameters: [
+        'type' => 'object',
+        'properties' => ['city' => ['type' => 'string', 'description' => 'The city name']],
+        'required' => ['city']
+    ],
+    callable: function (array $args) {
+        $obs = ['Paris' => 'Cloudy, 14°C', 'London' => 'Rainy, 11°C', 'New York' => 'Sunny, 22°C'];
+        return $obs[$args['city']] ?? 'Weather data unavailable.';
+    }
+);
+
+$eventTool = new FunctionTool(
+    name: 'search_local_events',
+    description: 'Searches for upcoming cultural events or concerts in a specific city.',
+    parameters: [
+        'type' => 'object',
+        'properties' => ['city' => ['type' => 'string', 'description' => 'The city name']],
+        'required' => ['city']
+    ],
+    callable: function (array $args) {
+        if ($args['city'] === 'Paris') {
+            return [
+                ['name' => 'Jazz Festival at Le Caveau', 'time' => '20:00'],
+                ['name' => 'Monet at Grand Palais', 'time' => '10:00-18:00']
+            ];
+        }
+        return "No specific events found for {$args['city']} today.";
+    }
+);'>Copy</button>
+  </div>
+  <pre><code>$weatherTool = new FunctionTool(
+    name: &#39;get_current_weather&#39;,
+    description: &#39;Fetches the live weather forecast for a given city.&#39;,
+    parameters: [
+        &#39;type&#39; =&gt; &#39;object&#39;,
+        &#39;properties&#39; =&gt; [&#39;city&#39; =&gt; [&#39;type&#39; =&gt; &#39;string&#39;, &#39;description&#39; =&gt; &#39;The city name&#39;]],
+        &#39;required&#39; =&gt; [&#39;city&#39;]
+    ],
+    callable: function (array $args) {
+        $obs = [&#39;Paris&#39; =&gt; &#39;Cloudy, 14°C&#39;, &#39;London&#39; =&gt; &#39;Rainy, 11°C&#39;, &#39;New York&#39; =&gt; &#39;Sunny, 22°C&#39;];
+        return $obs[$args[&#39;city&#39;]] ?? &#39;Weather data unavailable.&#39;;
+    }
+);
+
+$eventTool = new FunctionTool(
+    name: &#39;search_local_events&#39;,
+    description: &#39;Searches for upcoming cultural events or concerts in a specific city.&#39;,
+    parameters: [
+        &#39;type&#39; =&gt; &#39;object&#39;,
+        &#39;properties&#39; =&gt; [&#39;city&#39; =&gt; [&#39;type&#39; =&gt; &#39;string&#39;, &#39;description&#39; =&gt; &#39;The city name&#39;]],
+        &#39;required&#39; =&gt; [&#39;city&#39;]
+    ],
+    callable: function (array $args) {
+        if ($args[&#39;city&#39;] === &#39;Paris&#39;) {
+            return [
+                [&#39;name&#39; =&gt; &#39;Jazz Festival at Le Caveau&#39;, &#39;time&#39; =&gt; &#39;20:00&#39;],
+                [&#39;name&#39; =&gt; &#39;Monet at Grand Palais&#39;, &#39;time&#39; =&gt; &#39;10:00-18:00&#39;]
+            ];
+        }
+        return &quot;No specific events found for {$args[&#39;city&#39;]} today.&quot;;
+    }
+);</code></pre>
+</div>
+<h2>The agent decides the order</h2>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy='$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a personal concierge with location, weather, and event tools. "
+                . "When answering, first describe the location and weather, then list any "
+                . "relevant events.",
+    tools: [$locationTool, $weatherTool, $eventTool]
+);
+$agent->enableActivityLogging();
+
+$response = $agent->chat(
+    "Check where I am, get the weather there, and see if there are any jazz events tonight."
+);
+echo $response;'>Copy</button>
+  </div>
+  <pre><code>$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a personal concierge with location, weather, and event tools. &quot;
+                . &quot;When answering, first describe the location and weather, then list any &quot;
+                . &quot;relevant events.&quot;,
+    tools: [$locationTool, $weatherTool, $eventTool]
+);
+$agent-&gt;enableActivityLogging();
+
+$response = $agent-&gt;chat(
+    &quot;Check where I am, get the weather there, and see if there are any jazz events tonight.&quot;
+);
+echo $response;</code></pre>
+</div>
+<p>You did <strong>not</strong> script the sequence. The model:</p>
+<li>Calls <code>detect<em>user</em>location</code> (no args) → <code>Paris</code>.</li>
+<li>Calls <code>get<em>current</em>weather</code> with <code>city: &quot;Paris&quot;</code> → <code>Cloudy, 14°C</code>.</li>
+<li>Calls <code>search<em>local</em>events</code> with <code>city: &quot;Paris&quot;</code> → the jazz festival.</li>
+<li>Composes the final answer in the order the prompt asked for.</li>
+<p><strong>The dependency is implicit.</strong> The model reads the location result, then <em>passes that city into the next two tools.</em> You gave it the pieces and the goal; it built the pipeline.</p>
+<h2>The two things that make this work</h2>
+<li><strong>Each tool is narrow and well-described.</strong> <code>description</code> is what the model reads to choose a tool. &quot;Determines the user&#39;s current city and country&quot; tells it this is the first step. Vague descriptions = wrong tool picks.</li>
+<li>*<em>The prompt sets the </em>shape<em> of the answer</em>*, not the tool calls. &quot;First describe location and weather, then list events&quot; steers the composition while leaving the orchestration to the model.</li>
+<h2>Tool with no parameters - the `stdClass()` trick</h2>
+<p><code>detect<em>user</em>location</code> takes no input. In JSON Schema an object with no properties is <code>{&#39;type&#39;:&#39;object&#39;,&#39;properties&#39;:{}}</code> - in PHP you write <code>new stdClass()</code> for that empty object. Small gotcha, easy to miss: a <code>[]</code> (empty array) encodes as a JSON <em>array</em>, not an object.</p>
+<h2>When to use this vs. an agent chain</h2>
+<li><strong>Multi-tool, one agent</strong> (this): the steps are <em>interdependent</em> and the model should choose the path. Good for concierges, assistants, anything open-ended.</li>
+<li><strong>Agent chain</strong> (<a href="08-multi-agent-chain.html">this article</a>): the stages are <em>fixed</em> and you want different models/prompts per stage. Good for deterministic pipelines.</li>
+<p>Rule of thumb: <strong>if the path is fixed, use a chain; if the path depends on the input, give one agent many tools and let it decide.</strong></p>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../">Explore the full series</a> - each article teaches one pattern.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get each new article by email</a></strong> - one per publish day + the 12-part cheatsheet when it drops.
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>
