@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agents in PHP - the 12-Pattern Cheatsheet (NanoAgent)</title>
+<meta name="description" content="Every pattern from the NanoAgent PHP AI agent series on one page: pattern name, what it does, the core code snippet, and a link to the full article.">
+<link rel="canonical" href="https://hammrouni.github.io/nanoagentphp/cheatsheet/">
+<link rel="icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1622;
+    --ink-2: #101f30;
+    --ink-3: #071018;
+    --line: #4d7395;
+    --line-soft: rgba(77, 115, 149, 0.24);
+    --text: #e9eef4;
+    --text-dim: #8fa3b8;
+    --accent: #c99a4e;
+    --accent-bright: #ddb268;
+    --accent-dim: #9c763a;
+    --paper: #faf9f5;
+    --paper-text: #16324f;
+    --paper-dim: #6b7684;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 520px at 82% -8%, rgba(77, 115, 149, 0.16), transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 3px; }
+
+  .masthead {
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(7, 16, 24, 0.55);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .masthead .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .masthead .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .masthead .mark img { display: block; }
+  .masthead .mark span { color: var(--text-dim); font-weight: 400; }
+
+  .masthead nav {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .masthead nav a { color: var(--text-dim); text-decoration: none; }
+  .masthead nav a:hover { color: var(--accent-bright); }
+
+  main { padding: 56px 0; }
+  main .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  main .prose {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  h1 { font-family: var(--mono); font-size: 2rem; font-weight: 600; margin: 0 0 12px 0; }
+  h2 { font-family: var(--mono); font-size: 1.2rem; font-weight: 600; margin: 0; color: var(--text); }
+
+  p { margin: 16px 0; }
+  p:first-child { margin-top: 0; }
+
+  .tagline {
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    margin: 0 0 32px 0;
+  }
+
+  code {
+    background: rgba(77, 115, 149, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+
+  .toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 20px;
+    border: 1px solid var(--line-soft);
+    border-radius: 6px;
+    background: rgba(77, 115, 149, 0.05);
+    margin: 32px 0 48px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .toc a { color: var(--text-dim); }
+  .toc a:hover { color: var(--accent-bright); }
+
+  .cheat-row {
+    border-top: 1px solid var(--line-soft);
+    padding: 32px 0;
+  }
+
+  .cheat-row:first-of-type { border-top: none; padding-top: 0; }
+
+  .cheat-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+
+  .cheat-num {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 2px 7px;
+    flex-shrink: 0;
+  }
+
+  .cheat-blurb { color: var(--text-dim); margin: 0 0 16px 0; }
+
+  .cheat-link {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 13px;
+    margin-top: 8px;
+  }
+
+  .code-frame {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.55);
+    margin: 0 0 16px 0;
+  }
+
+  .code-frame-bar {
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+  }
+
+  .code-frame-bar .filename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-frame-bar .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .code-frame-bar .copy-btn {
+    background: none;
+    border: 1px solid var(--line-soft);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .code-frame-bar .copy-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  pre {
+    background: var(--paper);
+    color: var(--paper-text);
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .cta-panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 48px 32px;
+    background: linear-gradient(180deg, rgba(77, 115, 149, 0.07), transparent 70%);
+    text-align: center;
+    margin-top: 40px;
+  }
+
+  .cta-panel h2 { margin-top: 0; font-size: 1.3rem; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    color: var(--paper-text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    margin: 24px 0;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid rgba(22, 50, 79, 0.18);
+    color: var(--paper-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .copy-btn:hover { border-color: var(--paper-dim); color: var(--paper-text); }
+
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line-soft); }
+
+  footer .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--text); }
+
+  @media (max-width: 620px) {
+    main { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mark"><img src="../assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT</div>
+    <nav>
+      <a href="../articles/">The series</a>
+      <a href="../">Back to overview</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <article class="prose">
+      <h1>AI Agents in PHP — the 12-Pattern Cheatsheet</h1>
+      <p class="tagline">Every pattern from the NanoAgent series, one page: what it does, the core snippet, the full article. Bookmark it, forward it to your team.</p>
+
+      <div class="toc">
+        <a href="#00-basic-agent">00 Basic Agent</a>
+        <a href="#01-stateful-chat">01 Stateful Chat</a>
+        <a href="#02-persistent-memory">02 Persistent Memory</a>
+        <a href="#03-streaming-sse">03 Streaming SSE</a>
+        <a href="#04-structured-output">04 Structured Output</a>
+        <a href="#05-multi-provider">05 Multi-Provider</a>
+        <a href="#06-api-integration">06 API Integration</a>
+        <a href="#07-mcp-tools">07 MCP Tools</a>
+        <a href="#08-multi-agent-chain">08 Multi-Agent Chain</a>
+        <a href="#09-rag-knowledge-base">09 RAG Knowledge Base</a>
+        <a href="#10-stateful-tools">10 Stateful Tools</a>
+        <a href="#11-multi-tool-orchestration">11 Multi-Tool Orchestration</a>
+      </div>
+
+      <div class="cheat-row" id="00-basic-agent">
+        <div class="cheat-head">
+          <span class="cheat-num">00</span>
+          <h2>Basic Agent</h2>
+        </div>
+        <p class="cheat-blurb">Your first AI agent in PHP — one agent, one tool, one task.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a helpful PHP technical assistant.&quot;,
+    tools: [$secretTool]
+);'>Copy</button>
+          </div>
+          <pre><code>$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a helpful PHP technical assistant.",
+    tools: [$secretTool]
+);</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/00-basic-agent.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="01-stateful-chat">
+        <div class="cheat-head">
+          <span class="cheat-num">01</span>
+          <h2>Stateful Chat</h2>
+        </div>
+        <p class="cheat-blurb">Conversation history that survives requests, via PHP sessions.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='if (!isset($_SESSION[&#x27;history&#x27;])) {
+    $_SESSION[&#x27;history&#x27;] = [];
+}
+
+$agent-&gt;setMemory(new FileMemory(__DIR__ . &#x27;/memory&#x27;), &quot;user-$userId&quot;);'>Copy</button>
+          </div>
+          <pre><code>if (!isset($_SESSION['history'])) {
+    $_SESSION['history'] = [];
+}
+
+$agent-&gt;setMemory(new FileMemory(__DIR__ . '/memory'), "user-$userId");</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/01-stateful-chat.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="02-persistent-memory">
+        <div class="cheat-head">
+          <span class="cheat-num">02</span>
+          <h2>Persistent Memory</h2>
+        </div>
+        <p class="cheat-blurb">Chat history that survives restarts — file or database-backed.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='use NanoAgent\Memory\PdoMemory;
+
+// SQLite file, created on first use (keep it outside your public web root):
+$agent-&gt;setMemory(PdoMemory::sqlite(__DIR__ . &#x27;/memory/chat.sqlite&#x27;), &quot;user-$userId&quot;);'>Copy</button>
+          </div>
+          <pre><code>use NanoAgent\Memory\PdoMemory;
+
+// SQLite file, created on first use (keep it outside your public web root):
+$agent-&gt;setMemory(PdoMemory::sqlite(__DIR__ . '/memory/chat.sqlite'), "user-$userId");</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/02-persistent-memory.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="03-streaming-sse">
+        <div class="cheat-head">
+          <span class="cheat-num">03</span>
+          <h2>Streaming SSE</h2>
+        </div>
+        <p class="cheat-blurb">Stream LLM tokens to the browser with Server-Sent Events.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='$agent-&gt;stream($userMessage, function ($token) {
+        echo &quot;data: &quot; . json_encode([&#x27;token&#x27; =&gt; $token]) . &quot;\n\n&quot;;
+        ob_flush();
+        flush();
+    });'>Copy</button>
+          </div>
+          <pre><code>$agent-&gt;stream($userMessage, function ($token) {
+        echo "data: " . json_encode(['token' =&gt; $token]) . "\n\n";
+        ob_flush();
+        flush();
+    });</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/03-streaming-sse.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="04-structured-output">
+        <div class="cheat-head">
+          <span class="cheat-num">04</span>
+          <h2>Structured Output</h2>
+        </div>
+        <p class="cheat-blurb">Extract clean JSON from unstructured model text via a forced tool call.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='callable: function (array $args) use (&amp;$extractedData) {
+        $extractedData = $args;
+        return &quot;Internal: Profile for {$args[&#x27;full_name&#x27;]} captured.&quot;;
+    }
+);'>Copy</button>
+          </div>
+          <pre><code>callable: function (array $args) use (&amp;$extractedData) {
+        $extractedData = $args;
+        return "Internal: Profile for {$args['full_name']} captured.";
+    }
+);</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/04-structured-output.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="05-multi-provider">
+        <div class="cheat-head">
+          <span class="cheat-num">05</span>
+          <h2>Multi-Provider</h2>
+        </div>
+        <p class="cheat-blurb">Switch between Groq, OpenAI, and a Mock provider — same agent code.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='$agent = new Agent(
+    llm: $cfg[&#x27;llm&#x27;],                       // &lt;-- the ONLY thing that changes
+    systemPrompt: &quot;You are testing the $name provider. Reply briefly identifying yourself.&quot;
+);'>Copy</button>
+          </div>
+          <pre><code>$agent = new Agent(
+    llm: $cfg['llm'],                       // &lt;-- the ONLY thing that changes
+    systemPrompt: "You are testing the $name provider. Reply briefly identifying yourself."
+);</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/05-multi-provider.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="06-api-integration">
+        <div class="cheat-head">
+          <span class="cheat-num">06</span>
+          <h2>API Integration</h2>
+        </div>
+        <p class="cheat-blurb">Call a real API (live weather) from an agent in four functions.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: &quot;You are a meteorological assistant. You can retrieve real-time &quot;
+                . &quot;weather information for any city.&quot;,
+    tools: [$weatherTool]
+);'>Copy</button>
+          </div>
+          <pre><code>$agent = new Agent(
+    llm: $llmConfig,
+    systemPrompt: "You are a meteorological assistant. You can retrieve real-time "
+                . "weather information for any city.",
+    tools: [$weatherTool]
+);</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/06-api-integration.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="07-mcp-tools">
+        <div class="cheat-head">
+          <span class="cheat-num">07</span>
+          <h2>MCP Tools</h2>
+        </div>
+        <p class="cheat-blurb">Connect an agent to a remote MCP tool server in four lines.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='$discovered = $agent-&gt;registerMcpServer($mcpClient);
+$agent-&gt;enableActivityLogging();
+
+$answer = $agent-&gt;chat(&quot;Repository: facebook/react\nQuestion: What does this repo do?&quot;);'>Copy</button>
+          </div>
+          <pre><code>$discovered = $agent-&gt;registerMcpServer($mcpClient);
+$agent-&gt;enableActivityLogging();
+
+$answer = $agent-&gt;chat("Repository: facebook/react\nQuestion: What does this repo do?");</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/07-mcp-tools.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="08-multi-agent-chain">
+        <div class="cheat-head">
+          <span class="cheat-num">08</span>
+          <h2>Multi-Agent Chain</h2>
+        </div>
+        <p class="cheat-blurb">Chain a researcher agent into a writer agent — no shared tools.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='$research = $researcher-&gt;chat(&quot;Research the topic: $topic&quot;);
+// e.g. &quot;1. Created by Rasmus Lerdorf in 1994. 2. Powers over 75% of websites...&quot;
+
+$post = $writer-&gt;chat(&quot;Write a post based on these facts:\n\n&quot; . $research);'>Copy</button>
+          </div>
+          <pre><code>$research = $researcher-&gt;chat("Research the topic: $topic");
+// e.g. "1. Created by Rasmus Lerdorf in 1994. 2. Powers over 75% of websites..."
+
+$post = $writer-&gt;chat("Write a post based on these facts:\n\n" . $research);</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/08-multi-agent-chain.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="09-rag-knowledge-base">
+        <div class="cheat-head">
+          <span class="cheat-num">09</span>
+          <h2>RAG Knowledge Base</h2>
+        </div>
+        <p class="cheat-blurb">Answer from your own docs, not the model's memory.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='$agent = new Agent(
+    llm: $llmConfig,
+    tools: [$searchTool]
+);
+
+$response = $agent-&gt;chat(&quot;Can I work from Hawaii for two months?&quot;);'>Copy</button>
+          </div>
+          <pre><code>$agent = new Agent(
+    llm: $llmConfig,
+    tools: [$searchTool]
+);
+
+$response = $agent-&gt;chat("Can I work from Hawaii for two months?");</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/09-rag-knowledge-base.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="10-stateful-tools">
+        <div class="cheat-head">
+          <span class="cheat-num">10</span>
+          <h2>Stateful Tools</h2>
+        </div>
+        <p class="cheat-blurb">An agent that reads and mutates an inventory — a tool with state.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='public function order(string $id, int $qty): string {
+        if ($this-&gt;products[$id][&#x27;stock&#x27;] &lt; $qty) return &quot;Error: Insufficient stock.&quot;;
+        $this-&gt;products[$id][&#x27;stock&#x27;] -= $qty;   // &lt;-- the mutation
+        return &quot;Success: Ordered $qty of {$this-&gt;products[$id][&#x27;name&#x27;]}.&quot;;
+    }'>Copy</button>
+          </div>
+          <pre><code>public function order(string $id, int $qty): string {
+        if ($this-&gt;products[$id]['stock'] &lt; $qty) return "Error: Insufficient stock.";
+        $this-&gt;products[$id]['stock'] -= $qty;   // &lt;-- the mutation
+        return "Success: Ordered $qty of {$this-&gt;products[$id]['name']}.";
+    }</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/10-stateful-tools.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cheat-row" id="11-multi-tool-orchestration">
+        <div class="cheat-head">
+          <span class="cheat-num">11</span>
+          <h2>Multi-Tool Orchestration</h2>
+        </div>
+        <p class="cheat-blurb">One agent, many tools, one answer — the model builds the pipeline.</p>
+        <div class='code-frame'>
+          <div class='code-frame-bar'>
+            <div class='filename'><span class='dot'></span>php</div>
+            <button class='copy-btn' data-copy='$agent = new Agent(
+    llm: $llmConfig,
+    tools: [$locationTool, $weatherTool, $eventTool]
+);
+
+$response = $agent-&gt;chat(
+    &quot;Check where I am, get the weather there, and see if there are any jazz events tonight.&quot;
+);'>Copy</button>
+          </div>
+          <pre><code>$agent = new Agent(
+    llm: $llmConfig,
+    tools: [$locationTool, $weatherTool, $eventTool]
+);
+
+$response = $agent-&gt;chat(
+    "Check where I am, get the weather there, and see if there are any jazz events tonight."
+);</code></pre>
+        </div>
+        <a class="cheat-link" href="../articles/11-multi-tool-orchestration.html">Read the full article &rarr;</a>
+      </div>
+
+      <div class="cta-panel">
+        <h2>Ready to ship an agent?</h2>
+        <div class="install">
+          <span style="color: var(--accent-dim);">$</span>
+          <code>composer require hammrouni/nanoagent</code>
+          <button class="copy-btn" data-copy="composer require hammrouni/nanoagent">Copy</button>
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 24px;">
+          MIT, zero dependencies. <a href="../articles/">Read the full series</a> — each article covers one pattern in depth.
+        </p>
+        <p style="color: var(--text-dim); font-size: 14px; margin: 16px 0 0;">
+          <strong><a href="../subscribe/">Get new articles by email</a></strong>
+        </p>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2024 Khaled Hammrouni. MIT licensed.</div>
+    <div><a href="https://github.com/hammrouni/nanoagentphp">GitHub</a></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+</body>
+</html>
