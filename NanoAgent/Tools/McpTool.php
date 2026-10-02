@@ -44,6 +44,20 @@ class McpTool implements Tool
     }
 
     /**
+     * The raw MCP tool definition (name/description/inputSchema) as reported
+     * by the server. Used by Agent::registerMcpServer() to reconcile wrappers
+     * against the raw tool list without touching the network.
+     */
+    public function getDefinition(): array
+    {
+        return [
+            'name' => $this->name,
+            'description' => $this->description,
+            'inputSchema' => $this->inputSchema,
+        ];
+    }
+
+    /**
      * Dispatches execution to the MCP server rather than running local PHP logic.
      */
     public function execute(array $arguments): mixed

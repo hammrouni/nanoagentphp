@@ -482,6 +482,136 @@ class AgentTest extends TestCase
     }
 
     /**
+     * Test: a local tool registered on the agent survives MCP server
+     * registration and reconciliation — reconcileMcpTools() must only touch
+     * McpTool instances.
+     */
+    public function testMcpReconciliationDoesNotRemoveLocalTools()
+    {
+        $localTool = new class implements Tool {
+            public function getName(): string { return 'local_tool'; }
+            public function toArray(): array { return ['name' => 'local_tool']; }
+            public function execute(array $args): mixed { return 'ok'; }
+        };
+
+        $mockClient = $this->createMock(\NanoAgent\Mcp\McpClient::class);
+        $mockClient->method('listTools')->willReturn([
+            ['name' => 'mcp_alpha', 'description' => 'alpha', 'inputSchema' => []],
+        ]);
+
+        $agent = new Agent(['provider' => 'mock'], '', [$localTool]);
+        $names = $agent->registerMcpServer($mockClient);
+
+        // The return value is the discovery result callers rely on.
+        $this->assertSame(['mcp_alpha'], $names);
+
+        $tools = $this->getPrivateProperty($agent, 'tools');
+        $this->assertArrayHasKey('local_tool', $tools);
+        $this->assertArrayHasKey('mcp_alpha', $tools);
+        $this->assertInstanceOf(\NanoAgent\Tools\McpTool::class, $tools['mcp_alpha']);
+
+        // Re-registering the same server reconciles instead of duplicating.
+        $names = $agent->registerMcpServer($mockClient);
+        $this->assertSame(['mcp_alpha'], $names);
+        $tools = $this->getPrivateProperty($agent, 'tools');
+        $this->assertArrayHasKey('local_tool', $tools);
+        $this->assertArrayHasKey('mcp_alpha', $tools);
+        $this->assertCount(2, $tools);
+    }
+
+    /**
+     * Test: a tool left off a new allowlist is removed from the agent,
+     * while tools still in the allowlist stay registered.
+     */
+    public function testMcpAllowlistRemovesDeselectedTools()
+    {
+        $mockClient = $this->createMock(\NanoAgent\Mcp\McpClient::class);
+        $mockClient->method('listTools')->willReturn([
+            ['name' => 'mcp_alpha', 'description' => 'alpha', 'inputSchema' => []],
+            ['name' => 'mcp_beta', 'description' => 'beta', 'inputSchema' => []],
+        ]);
+
+        $agent = new Agent(['provider' => 'mock']);
+        $names = $agent->registerMcpServer($mockClient, ['mcp_beta']);
+
+        // Only the allowed tool is reported as discovered.
+        $this->assertSame(['mcp_beta'], $names);
+
+        $tools = $this->getPrivateProperty($agent, 'tools');
+        $this->assertArrayHasKey('mcp_beta', $tools);
+        $this->assertArrayNotHasKey('mcp_alpha', $tools);
+    }
+
+    /**
+     * Test: an allowlist entry the server does not expose is a no-op, not an error.
+     */
+    public function testMcpAllowlistWithUnknownToolNameIsNoop()
+    {
+        $mockClient = $this->createMock(\NanoAgent\Mcp\McpClient::class);
+        $mockClient->method('listTools')->willReturn([
+            ['name' => 'mcp_alpha', 'description' => 'alpha', 'inputSchema' => []],
+        ]);
+
+        $agent = new Agent(['provider' => 'mock']);
+        $agent->registerMcpServer($mockClient, ['mcp_alpha', 'mcp_missing']);
+
+        $tools = $this->getPrivateProperty($agent, 'tools');
+        $this->assertArrayHasKey('mcp_alpha', $tools);
+        $this->assertArrayNotHasKey('mcp_missing', $tools);
+    }
+
+    /**
+     * Test: registered MCP tools are actually dispatched to the MCP client
+     * (not executed locally), and the tool definitions are included in the
+     * LLM request.
+     */
+    public function testMcpToolIsExecutedAndSentInRequest()
+    {
+        $mockClient = $this->createMock(\NanoAgent\Mcp\McpClient::class);
+        $mockClient->method('listTools')->willReturn([
+            ['name' => 'mcp_alpha', 'description' => 'alpha', 'inputSchema' => ['type' => 'object']],
+        ]);
+        $mockClient->expects($this->once())
+            ->method('callTool')
+            ->with('mcp_alpha', ['x' => 42])
+            ->willReturn('mcp result');
+
+        $mockProvider = new MockProvider([
+            [
+                'content' => null,
+                'tool_calls' => [
+                    [
+                        'id' => 'call_1',
+                        'function' => [
+                            'name' => 'mcp_alpha',
+                            'arguments' => json_encode(['x' => 42])
+                        ]
+                    ]
+                ]
+            ],
+            ['content' => 'Done via MCP']
+        ]);
+
+        $agent = new Agent(['provider' => 'mock'], '');
+        $this->injectProvider($agent, $mockProvider);
+        $agent->registerMcpServer($mockClient);
+
+        $response = $agent->chat('Run mcp_alpha');
+
+        $this->assertSame('Done via MCP', $response);
+
+        $requests = $mockProvider->getCapturedRequests();
+        $this->assertArrayHasKey('tools', $requests[0]);
+        $this->assertSame(
+            ['type' => 'function', 'function' => ['name' => 'mcp_alpha', 'description' => 'alpha', 'parameters' => ['type' => 'object']]],
+            $requests[0]['tools'][0]
+        );
+
+        $history = $agent->getHistory();
+        $this->assertEquals('mcp result', $history[2]['content']);
+    }
+
+    /**
      * Helper to inject provider
      */
     private function injectProvider(Agent $agent, $provider)

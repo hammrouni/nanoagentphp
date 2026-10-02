@@ -37,7 +37,7 @@ NanoAgent is that library. It is deliberately **lightweight and local-first**: o
 
 * **⚡ One config array, any provider.** OpenAI, Groq, Anthropic, DeepSeek, OpenRouter - or any OpenAI-compatible endpoint, including a **local** model server. Swap in one line.
 * **🛠️ Tool-first architecture.** Map plain PHP functions as tools the agent calls - your database, your APIs, your device telemetry.
-* **🔌 MCP support.** Register any Model Context Protocol server (Streamable HTTP); its tools behave exactly like your local ones.
+* **🔌 MCP support.** Register any Model Context Protocol server (Streamable HTTP); its tools behave exactly like your local ones - and you can allowlist which ones to register.
 * **🧠 Persistent memory.** Conversations survive across requests via pluggable drivers: files, SQLite, MySQL, PostgreSQL, or your own.
 * **💎 Minimal footprint.** One package, no hidden magic, easy to audit.
 
@@ -107,9 +107,36 @@ echo $agent->chat('What is 17 + 25?');
 use NanoAgent\Mcp\McpClient;
 
 $mcpClient = new McpClient('https://mcp.deepwiki.com/mcp');
-$agent->registerMcpServer($mcpClient);
+$names = $agent->registerMcpServer($mcpClient);
 echo $agent->chat('Ask the facebook/react repo what it does.');
 ```
+
+Every registered MCP tool ships its full JSON Schema to the model **on every turn**, so a server with 50 tools costs 50 tool definitions per request. Pass an allowlist to register only the ones you need:
+```php
+$names = $agent->registerMcpServer($mcpClient, allowlist: ['ask_question']);
+```
+
+**Which names?** Ask the server directly with `McpClient::listTools()` — it returns every tool it exposes, with descriptions, and registers nothing:
+```php
+use NanoAgent\Mcp\McpClient;
+
+$mcpClient = new McpClient('https://mcp.deepwiki.com/mcp');
+
+foreach ($mcpClient->listTools() as $tool) {
+    echo $tool['name'], "\n";                 // -> the name you put in the allowlist
+    echo ($tool['description'] ?? ''), "\n";  // -> so you know what it's for
+}
+```
+
+Each entry is `['name' => ..., 'description' => ..., 'inputSchema' => [...]]`. Skip the allowlist on a first call to just register everything and read the names back:
+```php
+$names = $agent->registerMcpServer($mcpClient);   // no allowlist -> registers all
+print_r($names);                                  // then re-register narrowed
+```
+
+Keep the same `$mcpClient` object for both: the MCP handshake is memoized per client, so re-using it skips a re-initialize (the `tools/list` call itself is repeated). Note that there is no `Agent::getTools()` — the return value of `registerMcpServer()` is the only listing of what the agent currently holds.
+
+Calling `registerMcpServer()` again on the same client **reconciles** rather than duplicates: tools you keep are untouched, tools you drop are removed from the agent, and locally registered tools are never affected. A name the server doesn't expose is ignored, not an error - handy when the allowlist comes from config.
 
 ## 🧠 Persistent Memory
 
@@ -152,7 +179,7 @@ The `examples/` directory has runnable demos (open `examples/index.php` in a bro
 | **[Streaming](examples/streaming.php)** | Real-time token streaming (SSE). |
 | **[Agent Chain](examples/agent_chain.php)** | Multi-agent workflow (Researcher feeds Writer). |
 | **[Multi-Tool](examples/multi_tool_workflow.php)** | Orchestrate several tools for one request. |
-| **[MCP Tools](examples/mcp_tools.php)** | Call tools discovered from a remote MCP server. |
+| **[MCP Tools](examples/mcp_tools.php)** | Discover a remote MCP server's tools and allowlist which ones to register. |
 | **[Multi-Provider](examples/multi_provider.php)** | Switch providers programmatically. |
 | **[API Integration](examples/api_integration.php)** | Fetch data from external APIs. |
 | **[Advanced Tools](examples/advanced_tools.php)** | Multi-step tool use with simulated DB state. |
@@ -169,6 +196,10 @@ Every provider below is covered by the automated test suite (see the CI badge). 
 * **Any OpenAI-compatible endpoint** - including a **local** model server, via `base_url`.
 
 ## Changelog
+
+### 0.6.0
+1. MCP allowlist: `registerMcpServer($client, ['tool_a'])` registers only the tools you name. Every registered tool ships its JSON Schema on every turn, so this is how you keep a large server's cost down. Unknown names are ignored, not an error.
+2. Calling `registerMcpServer()` again on the same client now reconciles instead of duplicating: tools dropped from the allowlist are removed from the agent, kept ones are untouched, and locally registered tools are never affected.
 
 ### 0.5.0
 1. Persistent memory: `Agent::setMemory()` keeps conversations across requests, with `ArrayMemory`, `FileMemory` and `PdoMemory` (SQLite, MySQL, PostgreSQL) drivers, or your own via `NanoAgent\Contracts\Memory`. See the [PdoMemory guide](docs/pdo-memory.md).
