@@ -18,7 +18,7 @@ class Agent
     /**
      * Library Version
      */
-    public const VERSION = '0.5.0';
+    public const VERSION = '0.6.0';
 
     /** @var array<array{role: string, content: string, tool_calls?: array}> Internal storage for the conversation's message history. */
     private array $history = [];
@@ -28,6 +28,13 @@ class Agent
 
     /** @var array<string, \NanoAgent\Contracts\Tool> Map of tool names to their respective Tool instances. */
     private array $tools = [];
+
+    /**
+     * @var array<string, array{client: \NanoAgent\Mcp\McpClient, tool: array}>
+     * Raw tools discovered from MCP servers, kept so re-registering a server can
+     * reconcile its tools without hitting the network again.
+     */
+    private array $mcpTools = [];
 
     /** @var callable|null An optional callback for monitoring agent events (logging, debugging). */
     private $onEvent = null;
@@ -281,23 +288,84 @@ class Agent
      * and register each one as a Tool, so the agent can call them exactly
      * like local FunctionTool instances.
      *
+     * Each registered MCP tool adds its full JSON Schema to every LLM request
+     * for as long as it stays registered, so registering a 50-tool server
+     * costs 50 tool definitions on every turn. To keep that cost under control:
+     *
+     * - $allowlist: when non-null, only the named tools are registered
+     *   (a tool the server does not expose is a no-op, not an error).
+     * - Re-calling this method for the same client reconciles the server's
+     *   tools instead of duplicating them: tools still in the allowlist stay,
+     *   tools no longer allowed are removed from the agent.
+     *
      * @param \NanoAgent\Mcp\McpClient $client
-     * @return string[] Names of the tools that were registered.
+     * @param string[]|null $allowlist Tool names to register; null (default)
+     *                                 registers everything the server exposes.
+     * @return string[] Names of the tools that are registered after this call.
      */
-    public function registerMcpServer(\NanoAgent\Mcp\McpClient $client): array
+    public function registerMcpServer(\NanoAgent\Mcp\McpClient $client, ?array $allowlist = null): array
     {
         $names = [];
         foreach ($client->listTools() as $tool) {
-            $mcpTool = new \NanoAgent\Tools\McpTool(
-                $client,
-                $tool['name'],
-                $tool['description'] ?? '',
-                $tool['inputSchema'] ?? []
-            );
-            $this->registerTool($mcpTool);
-            $names[] = $mcpTool->getName();
+            $name = $tool['name'];
+            $allowed = $allowlist === null || in_array($name, $allowlist, true);
+            if ($allowed) {
+                $this->mcpTools[$name] = [
+                    'client' => $client,
+                    'tool' => [
+                        'name' => $name,
+                        'description' => $tool['description'] ?? '',
+                        'inputSchema' => $tool['inputSchema'] ?? [],
+                    ],
+                ];
+                $names[] = $name;
+            } else {
+                unset($this->mcpTools[$name]);
+            }
         }
+        $this->reconcileMcpTools();
         return $names;
+    }
+
+    /**
+     * Make the registered McpTool set match the raw tools discovered from MCP
+     * servers: wraps tools that aren't wrapped yet and removes wrappers whose
+     * raw entry was dropped (e.g. no longer in the allowlist). Non-MCP tools
+     * in $this->tools are untouched.
+     */
+    private function reconcileMcpTools(): void
+    {
+        $desired = array_fill_keys(array_keys($this->mcpTools), true);
+        foreach ($this->tools as $name => $tool) {
+            if (!$tool instanceof \NanoAgent\Tools\McpTool) {
+                continue;
+            }
+            if (isset($desired[$name])) {
+                $raw = $this->mcpTools[$name];
+                if ($raw['tool'] !== $tool->getDefinition()) {
+                    // Schema or client changed — swap in a fresh wrapper.
+                    $this->registerTool(new \NanoAgent\Tools\McpTool(
+                        $raw['client'],
+                        $raw['tool']['name'],
+                        $raw['tool']['description'],
+                        $raw['tool']['inputSchema']
+                    ));
+                }
+                unset($desired[$name]);
+            } else {
+                unset($this->tools[$name]);
+            }
+        }
+        foreach ($this->mcpTools as $name => $raw) {
+            if (isset($desired[$name])) {
+                $this->registerTool(new \NanoAgent\Tools\McpTool(
+                    $raw['client'],
+                    $raw['tool']['name'],
+                    $raw['tool']['description'],
+                    $raw['tool']['inputSchema']
+                ));
+            }
+        }
     }
 
     /**

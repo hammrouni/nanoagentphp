@@ -501,19 +501,31 @@ $agent-&gt;setMemory(PdoMemory::sqlite(__DIR__ . '/memory/chat.sqlite'), "user-$
           <span class="cheat-num">07</span>
           <h2>MCP Tools</h2>
         </div>
-        <p class="cheat-blurb">Connect an agent to a remote MCP tool server in four lines.</p>
+        <p class="cheat-blurb">Connect an agent to a remote MCP tool server in four lines — allowlist the tools to keep the payload small, and <code>listTools()</code> to find the names.</p>
         <div class='code-frame'>
           <div class='code-frame-bar'>
             <div class='filename'><span class='dot'></span>php</div>
             <button class='copy-btn' data-copy='$discovered = $agent-&gt;registerMcpServer($mcpClient);
 $agent-&gt;enableActivityLogging();
 
-$answer = $agent-&gt;chat(&quot;Repository: facebook/react\nQuestion: What does this repo do?&quot;);'>Copy</button>
+$answer = $agent-&gt;chat(&quot;Repository: facebook/react\nQuestion: What does this repo do?&quot;);
+
+// Not sure which names? Ask the server — registers nothing:
+foreach ($mcpClient-&gt;listTools() as $tool) { echo $tool[&#39;name&#39;], &quot;\n&quot;; }
+
+// Register only the tools you need — each one costs a schema on every turn:
+$discovered = $agent-&gt;registerMcpServer($mcpClient, allowlist: [&#39;ask_question&#39;]);'>Copy</button>
           </div>
           <pre><code>$discovered = $agent-&gt;registerMcpServer($mcpClient);
 $agent-&gt;enableActivityLogging();
 
-$answer = $agent-&gt;chat("Repository: facebook/react\nQuestion: What does this repo do?");</code></pre>
+$answer = $agent-&gt;chat(&quot;Repository: facebook/react\nQuestion: What does this repo do?&quot;);
+
+// Not sure which names? Ask the server — registers nothing:
+foreach ($mcpClient-&gt;listTools() as $tool) { echo $tool[&#39;name&#39;], &quot;\n&quot;; }
+
+// Register only the tools you need — each one costs a schema on every turn:
+$discovered = $agent-&gt;registerMcpServer($mcpClient, allowlist: [&#39;ask_question&#39;]);</code></pre>
         </div>
         <a class="cheat-link" href="../articles/07-mcp-tools.html">Read the full article &rarr;</a>
       </div>

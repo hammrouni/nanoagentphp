@@ -434,7 +434,7 @@
 
 <header class="masthead">
   <div class="wrap">
-    <div class="mark"><img src="assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT <span>/ v0.5</span></div>
+    <div class="mark"><img src="assets/logo-mark.png" alt="" width="30" height="30">NANOAGENT <span>/ v0.6</span></div>
     <nav>
       <a href="https://github.com/hammrouni/nanoagentphp">Source</a>
       <a href="https://packagist.org/packages/hammrouni/nanoagent">Packagist</a>
@@ -659,7 +659,7 @@ $task-&gt;addContext(<span class="str">'Project'</span>, <span class="str">'Nano
   <section>
     <div class="wrap prose">
       <p class="sec-num">§4 — MCP DEMO</p>
-      <p style="color: var(--text-dim); margin: 0 0 20px;">Connect to any Model Context Protocol server and its tools become available to the agent alongside your own — no separate integration code.</p>
+      <p style="color: var(--text-dim); margin: 0 0 20px;">Connect to any Model Context Protocol server and its tools become available to the agent alongside your own — no separate integration code. Each registered tool ships its JSON Schema on every turn, so pass an <code>allowlist</code> to keep a large server's per-request cost down; re-calling <code>registerMcpServer()</code> on the same client reconciles instead of duplicating.</p>
 
       <div class="figure">
         <div class="figure-head">
@@ -673,7 +673,7 @@ $task-&gt;addContext(<span class="str">'Project'</span>, <span class="str">'Nano
 $agent = new Agent(llm: [ /* ... */ ]);
 
 $mcpClient = new McpClient('https://mcp.deepwiki.com/mcp');
-$agent->registerMcpServer($mcpClient);
+$names = $agent->registerMcpServer($mcpClient, allowlist: ['ask_question']);
 
 echo $agent->chat('Ask the facebook/react repo what it does.');">Copy</button>
         </div>
@@ -682,7 +682,7 @@ echo $agent->chat('Ask the facebook/react repo what it does.');">Copy</button>
 <span class="fn">$agent</span> = <span class="kw">new</span> Agent(llm: [ <span class="com">/* ... */</span> ]);
 
 <span class="fn">$mcpClient</span> = <span class="kw">new</span> McpClient(<span class="str">'https://mcp.deepwiki.com/mcp'</span>);
-$agent-&gt;registerMcpServer($mcpClient);
+<span class="fn">$names</span> = $agent-&gt;registerMcpServer($mcpClient, allowlist: [<span class="str">'ask_question'</span>]);
 
 <span class="kw">echo</span> $agent-&gt;chat(<span class="str">'Ask the facebook/react repo what it does.'</span>);</code></pre>
         </div>

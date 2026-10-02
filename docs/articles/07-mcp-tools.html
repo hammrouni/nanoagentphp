@@ -313,6 +313,60 @@ $agent-&gt;enableActivityLogging();
 $answer = $agent-&gt;chat(&quot;Repository: facebook/react\nQuestion: What does this repo do?&quot;);</code></pre>
 </div>
 <p>Connect → register → chat. <strong>The agent discovers the server&#39;s tools at runtime</strong> (that&#39;s what <code>registerMcpServer()</code> returns) and calls them exactly like local <code>FunctionTool</code>s. No tool schema by hand, no new DSL, no sidecar process.</p>
+<h2>Registering less, not more</h2>
+<p>Discovery is convenient, but not free. Every tool you register adds its full JSON Schema to <em>every</em> request the agent makes from then on - a 50-tool server means 50 tool definitions in each payload, which is wasted tokens (and wasted latency) if the agent only ever calls two of them.</p>
+<h3>So: what&#39;s on the server?</h3>
+<p>Before you can allowlist anything you need the names, and there are two ways to get them.</p>
+<p><strong>Ask the server without registering.</strong> <code>McpClient::listTools()</code> is public and registers nothing - it just reports what the server exposes, so it&#39;s safe to call at any time:</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy="$mcpClient = new McpClient('https://mcp.deepwiki.com/mcp');
+
+foreach ($mcpClient->listTools() as $tool) {
+    echo $tool['name'], &quot;\n&quot;;                 // -&gt; the name you put in the allowlist
+    echo ($tool['description'] ?? ''), &quot;\n&quot;;  // -&gt; so you know what it's for
+}">Copy</button>
+  </div>
+  <pre><code>$mcpClient = new McpClient(&#39;https://mcp.deepwiki.com/mcp&#39;);
+
+foreach ($mcpClient-&gt;listTools() as $tool) {
+    echo $tool[&#39;name&#39;], &quot;\n&quot;;                 // -&gt; the name you put in the allowlist
+    echo ($tool[&#39;description&#39;] ?? &#39;&#39;), &quot;\n&quot;;  // -&gt; so you know what it&#39;s for
+}</code></pre>
+</div>
+<p>Each entry is <code>[&#39;name&#39; =&gt; ..., &#39;description&#39; =&gt; ..., &#39;inputSchema&#39; =&gt; [...]]</code> - the same schema the agent would send to the model.</p>
+<p><strong>Or register everything and read the names back.</strong> Omitting the allowlist registers the whole server, and the return value tells you what you got. Handy for a one-off look at a server you don&#39;t know yet:</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy="$names = $agent->registerMcpServer($mcpClient);   // no allowlist -> registers all
+print_r($names);                                  // then re-register narrowed">Copy</button>
+  </div>
+  <pre><code>$names = $agent-&gt;registerMcpServer($mcpClient);   // no allowlist -&gt; registers all
+print_r($names);                                  // then re-register narrowed</code></pre>
+</div>
+<p>Keep the same <code>$mcpClient</code> object for both calls. The MCP handshake is memoized per client instance, so re-using it skips a second <code>initialize</code> round trip - the <code>tools/list</code> call itself is repeated either way.</p>
+<p>There is deliberately no <code>Agent::getTools()</code>: once a tool is registered its wrapper is an implementation detail, and the return value of <code>registerMcpServer()</code> is the listing you actually want - the names, not the objects.</p>
+<h3>Then allowlist</h3>
+<p><code>registerMcpServer()</code> takes an optional allowlist. Name the tools you want; everything else is left alone:</p>
+<div class='code-frame'>
+  <div class='code-frame-bar'>
+    <div class='filename'><span class='dot'></span>php</div>
+    <button class='copy-btn' data-copy="// Register everything (the default):
+$all = $agent->registerMcpServer($mcpClient);
+
+// Or only what you actually want:
+$some = $agent->registerMcpServer($mcpClient, allowlist: ['ask_question']);">Copy</button>
+  </div>
+  <pre><code>// Register everything (the default):
+$all = $agent-&gt;registerMcpServer($mcpClient);
+
+// Or only what you actually want:
+$some = $agent-&gt;registerMcpServer($mcpClient, allowlist: [&#39;ask_question&#39;]);</code></pre>
+</div>
+<p>A name the server doesn&#39;t expose is <strong>ignored, not an error</strong> - which is exactly what you want when the allowlist comes out of a config file and one tool was retired upstream.</p>
+<p>Calling the method again on the same client <strong>reconciles rather than duplicates</strong>. Tools you keep stay registered, tools you drop are removed from the agent, and any tool you registered locally yourself is never touched. That makes it safe to call once per request with an allowlist that comes from configuration.</p>
 <h2>What the agent is talking to here</h2>
 <p>The example uses <a href="https://mcp.deepwiki.com/mcp">DeepWiki&#39;s public MCP server</a> - free, no auth - which exposes tools for asking questions about the source and docs of any public GitHub repository. So the agent above can genuinely read and summarize an unfamiliar codebase. Point the same four lines at any other MCP server (search, databases, file systems, your own services) and the agent picks up <em>that</em> server&#39;s tools instead.</p>
 <h2>Local tool vs. MCP tool - the comparison</h2>
@@ -329,7 +383,8 @@ $answer = $agent-&gt;chat(&quot;Repository: facebook/react\nQuestion: What does 
 <h2>Getting started</h2>
 <li>Find or run an MCP server (DeepWiki is a zero-config one).</li>
 <li><code>new McpClient($url)</code>.</li>
-<li><code>$agent-&gt;registerMcpServer($client)</code>.</li>
+<li><code>$agent-&gt;registerMcpServer($client)</code> - add <code>allowlist: [...]</code> if the server exposes more tools than you want to pay for.</li>
+<li>Not sure which names? <code>$client-&gt;listTools()</code> prints them without registering anything.</li>
 <li>Ask it something the server can answer.</li>
 <p>That&#39;s the whole integration.</p>
 
