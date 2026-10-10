@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="logos/logo_transparent_white.png">
-    <img src="logos/logo_transparent.png" alt="NanoAgent" width="180">
+    <source media="(prefers-color-scheme: dark)" srcset="logos/logo-full-light-800.png">
+    <img src="logos/logo-full-800.png" alt="NanoAgent" width="420">
   </picture>
 </p>
 
